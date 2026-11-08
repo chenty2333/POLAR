@@ -1,0 +1,23 @@
+ca-CondMat 2hop Exact(s=0.5) start
+  round 1/20 edge 76 contenders (21, 0) 299s
+  round 2/20 edge 107 contenders (20, 0) 594s
+  round 3/20 edge 154 contenders (19, 0) 888s
+  round 4/20 edge 296 contenders (18, 0) 1186s
+  round 5/20 edge 379 contenders (17, 0) 1485s
+  round 6/20 edge 391 contenders (16, 0) 1784s
+  round 7/20 edge 414 contenders (15, 0) 2080s
+  round 8/20 edge 709 contenders (14, 0) 2371s
+  round 9/20 edge 824 contenders (13, 0) 2662s
+  round 10/20 edge 924 contenders (12, 0) 2948s
+  round 11/20 edge 1050 contenders (11, 0) 3236s
+  round 12/20 edge 1066 contenders (10, 0) 3522s
+  round 13/20 edge 1182 contenders (9, 0) 3810s
+  round 14/20 edge 1224 contenders (8, 0) 4102s
+  round 15/20 edge 1305 contenders (7, 0) 4393s
+  round 16/20 edge 1389 contenders (6, 0) 4682s
+  round 17/20 edge 1432 contenders (5, 0) 4972s
+  round 18/20 edge 1491 contenders (4, 0) 5260s
+  round 19/20 edge 1573 contenders (3, 0) 5546s
+  round 20/20 edge 1663 contenders (2, 0) 5835s
+ca-CondMat 2hop Exact(s=0.5) 6024s
+ca-CondMat 2hop CPU EXACT DONE

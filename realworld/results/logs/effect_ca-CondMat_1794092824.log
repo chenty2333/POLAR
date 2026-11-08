@@ -1,0 +1,14 @@
+ca-CondMat POLAR(s=0.25) 7.24s
+ca-CondMat POLAR(s=0.5) 6.74s
+ca-CondMat POLAR(s=0.75) 7.23s
+ca-CondMat Sketched-ER 3.44s
+ca-CondMat Sketched-Logdet 2.74s
+ca-CondMat Degree 0.00s
+ca-CondMat Random#0 0.00s
+ca-CondMat Random#1 0.00s
+ca-CondMat Random#2 0.00s
+ca-CondMat evaluated frac(s=0.25)
+ca-CondMat evaluated frac(s=0.5)
+ca-CondMat evaluated frac(s=0.75)
+ca-CondMat evaluated er
+ca-CondMat evaluated logdet

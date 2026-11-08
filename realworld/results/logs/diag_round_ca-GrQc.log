@@ -1,0 +1,15 @@
+ca-GrQc block 24 4 0 min r 0.8019 mean r 0.9298 min shortlist 0.8019
+ca-GrQc block 24 4 1 min r 0.7667 mean r 0.9171 min shortlist 0.7667
+ca-GrQc block 24 4 2 min r 0.8430 mean r 0.9333 min shortlist 0.8430
+ca-GrQc block 24 4 3 min r 0.7793 mean r 0.9144 min shortlist 0.7793
+ca-GrQc block 24 4 4 min r 0.8076 mean r 0.9104 min shortlist 0.8076
+ca-GrQc block 128 16 0 min r 0.9001 mean r 0.9642 min shortlist 0.9001
+ca-GrQc block 128 16 1 min r 0.9474 mean r 0.9870 min shortlist 0.9474
+ca-GrQc block 128 16 2 min r 0.9568 mean r 0.9895 min shortlist 0.9568
+ca-GrQc block 128 16 3 min r 0.9496 mean r 0.9859 min shortlist 0.9496
+ca-GrQc block 128 16 4 min r 0.9206 mean r 0.9781 min shortlist 0.9206
+ca-GrQc gauss 128 16 0 min r 0.9164 mean r 0.9708 min shortlist 0.9164
+ca-GrQc gauss 128 16 1 min r 0.9001 mean r 0.9736 min shortlist 0.9001
+ca-GrQc gauss 128 16 2 min r 0.8932 mean r 0.9529 min shortlist 0.8932
+ca-GrQc gauss 128 16 3 min r 0.8966 mean r 0.9583 min shortlist 0.8966
+ca-GrQc gauss 128 16 4 min r 0.8997 mean r 0.9571 min shortlist 0.8997

@@ -1,0 +1,181 @@
+{
+ "mode": "time",
+ "graph": {
+  "name": "as-Skitter",
+  "source": "as-skitter.txt.gz",
+  "sha256": "743d4f91fbcbcace4a70d44d1190fe75869faa1398d3eb73bb2d7663c2417510",
+  "n": 1696415,
+  "m": 11095298,
+  "preprocessing": "retain all endpoint vertices; undirect; deduplicate; remove self-loops",
+  "N": 2000,
+  "candidate_seed": 20270373,
+  "pool": "uniform",
+  "dmax": 35455.0,
+  "sigma": 1.0,
+  "n_active": 3996
+ },
+ "params": {
+  "k": 20,
+  "q": 128,
+  "B": 16,
+  "eps": 0.01,
+  "tol": 1e-07,
+  "s": 0.5,
+  "repetitions": 3,
+  "naive_reps": 1,
+  "naive_limit": 3600.0
+ },
+ "env": {
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "cupy": "14.2.0",
+  "numpy": "2.5.4",
+  "python": "3.12.3",
+  "host": "autodl-container-271149a41f-09c69976"
+ },
+ "runs": {
+  "Naive": [
+   {
+    "sequence": [
+     471,
+     1414,
+     1992,
+     216,
+     510,
+     1431,
+     875,
+     614
+    ],
+    "seconds": 4077.2167041115463,
+    "spmv": 2618908,
+    "rhs": 2048,
+    "p": 152,
+    "rounds": 8,
+    "truncated": true
+   }
+  ],
+  "POLAR(B=1)": [
+   {
+    "sequence": [
+     471,
+     1414,
+     1992,
+     216,
+     510,
+     1431,
+     875,
+     614,
+     1628,
+     46,
+     859,
+     1936,
+     1071,
+     577,
+     1236,
+     239,
+     262,
+     590,
+     1718,
+     526
+    ],
+    "seconds": 569.8408130239695,
+    "spmv": 347660,
+    "rhs": 276,
+    "p": 152,
+    "rounds": 20,
+    "truncated": false
+   },
+   {
+    "sequence": [
+     471,
+     1414,
+     1992,
+     216,
+     510,
+     1431,
+     875,
+     614,
+     1628,
+     46,
+     859,
+     1936,
+     1071,
+     577,
+     1236,
+     239,
+     262,
+     590,
+     1718,
+     526
+    ],
+    "seconds": 569.8901157230139,
+    "spmv": 347663,
+    "rhs": 276,
+    "p": 152,
+    "rounds": 20,
+    "truncated": false
+   }
+  ],
+  "POLAR(B=16)": [
+   {
+    "sequence": [
+     1414,
+     471,
+     875,
+     1071,
+     614,
+     1992,
+     1009,
+     46,
+     1431,
+     1628,
+     216,
+     577,
+     702,
+     634,
+     1936,
+     1718,
+     859,
+     377,
+     526,
+     590
+    ],
+    "seconds": 1389.625476391986,
+    "spmv": 656475,
+    "rhs": 576,
+    "p": 152,
+    "rounds": 20,
+    "truncated": false
+   },
+   {
+    "sequence": [
+     1414,
+     471,
+     875,
+     1071,
+     614,
+     1992,
+     1009,
+     46,
+     1431,
+     1628,
+     216,
+     577,
+     702,
+     634,
+     1936,
+     1718,
+     859,
+     377,
+     526,
+     590
+    ],
+    "seconds": 1389.2973055504262,
+    "spmv": 656475,
+    "rhs": 576,
+    "p": 152,
+    "rounds": 20,
+    "truncated": false
+   }
+  ]
+ }
+}

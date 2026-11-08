@@ -1,0 +1,3 @@
+com-LiveJournal Naive 0 2515.14s spmv=469168
+com-LiveJournal POLAR(B=1) 0 908.75s spmv=165786
+com-LiveJournal POLAR(B=16) 0 1720.93s spmv=311128

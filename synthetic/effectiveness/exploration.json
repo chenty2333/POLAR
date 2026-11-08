@@ -1,0 +1,102 @@
+[
+  {
+    "seed": 711,
+    "cw": 0.5,
+    "aw": 0.5,
+    "s": 0.25,
+    "polar": 6.078770784664698,
+    "degree": 4.793462593264451,
+    "er": 4.1056457598632505,
+    "counts": {
+      "cross": 0,
+      "leaf": 15,
+      "cycle": 0
+    },
+    "degree_counts": {
+      "cross": 0,
+      "leaf": 10,
+      "cycle": 5
+    },
+    "er_counts": {
+      "cross": 7,
+      "leaf": 8,
+      "cycle": 0
+    },
+    "runtime": 0.7716857129998971
+  },
+  {
+    "seed": 711,
+    "cw": 0.5,
+    "aw": 0.5,
+    "s": 0.5,
+    "polar": 14.239628016650272,
+    "degree": 10.398621321923656,
+    "er": 11.694351044524154,
+    "counts": {
+      "cross": 1,
+      "leaf": 14,
+      "cycle": 0
+    },
+    "degree_counts": {
+      "cross": 0,
+      "leaf": 10,
+      "cycle": 5
+    },
+    "er_counts": {
+      "cross": 7,
+      "leaf": 8,
+      "cycle": 0
+    },
+    "runtime": 0.7312838079997164
+  },
+  {
+    "seed": 711,
+    "cw": 1.0,
+    "aw": 1.0,
+    "s": 0.25,
+    "polar": 6.078778303610193,
+    "degree": 4.471864613505829,
+    "er": 4.105668757672845,
+    "counts": {
+      "cross": 0,
+      "leaf": 15,
+      "cycle": 0
+    },
+    "degree_counts": {
+      "cross": 0,
+      "leaf": 10,
+      "cycle": 5
+    },
+    "er_counts": {
+      "cross": 7,
+      "leaf": 8,
+      "cycle": 0
+    },
+    "runtime": 0.749056945999655
+  },
+  {
+    "seed": 711,
+    "cw": 1.0,
+    "aw": 1.0,
+    "s": 0.5,
+    "polar": 14.239680232825322,
+    "degree": 9.802892089730733,
+    "er": 11.694665787809015,
+    "counts": {
+      "cross": 1,
+      "leaf": 14,
+      "cycle": 0
+    },
+    "degree_counts": {
+      "cross": 0,
+      "leaf": 10,
+      "cycle": 5
+    },
+    "er_counts": {
+      "cross": 7,
+      "leaf": 8,
+      "cycle": 0
+    },
+    "runtime": 0.7441589350000868
+  }
+]

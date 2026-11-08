@@ -1,0 +1,7 @@
+roadNet-CA Naive 0 268.68s spmv=135680
+roadNet-CA POLAR(B=1) 0 15.24s spmv=7219
+roadNet-CA POLAR(B=16) 0 32.85s spmv=13811
+roadNet-CA POLAR(B=1) 1 15.12s spmv=7219
+roadNet-CA POLAR(B=16) 1 32.85s spmv=13811
+roadNet-CA POLAR(B=16) 2 32.85s spmv=13811
+roadNet-CA POLAR(B=1) 2 15.11s spmv=7219

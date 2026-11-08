@@ -1,0 +1,7 @@
+com-Youtube Naive 0 3686.98s spmv=3356225
+com-Youtube POLAR(B=1) 0 214.82s spmv=187416
+com-Youtube POLAR(B=16) 0 542.87s spmv=356525
+com-Youtube POLAR(B=1) 1 214.85s spmv=187391
+com-Youtube POLAR(B=16) 1 542.43s spmv=356525
+com-Youtube POLAR(B=16) 2 542.62s spmv=356525
+com-Youtube POLAR(B=1) 2 214.93s spmv=187417

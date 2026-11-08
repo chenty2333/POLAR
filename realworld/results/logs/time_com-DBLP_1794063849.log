@@ -1,0 +1,9 @@
+com-DBLP Naive 0 193.70s spmv=647105
+com-DBLP POLAR(B=1) 0 12.21s spmv=34477
+com-DBLP POLAR(B=16) 0 20.01s spmv=66597
+com-DBLP POLAR(B=1) 1 12.15s spmv=34476
+com-DBLP POLAR(B=16) 1 19.99s spmv=66597
+com-DBLP Naive 1 193.70s spmv=647105
+com-DBLP POLAR(B=16) 2 20.00s spmv=66597
+com-DBLP Naive 2 193.71s spmv=647105
+com-DBLP POLAR(B=1) 2 12.10s spmv=34479

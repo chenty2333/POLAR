@@ -1,0 +1,698 @@
+{
+  "comparisons": [
+    {
+      "s": 0.25,
+      "POLAR_percent_over": {
+        "Degree": 26.81236646432552,
+        "Exact-ER": 48.057925451608185,
+        "Sketched-ER": 19.3077676164787
+      },
+      "recovery_ratio_of_means": 99.95188065314844
+    },
+    {
+      "s": 0.5,
+      "POLAR_percent_over": {
+        "Degree": 36.939644908330834,
+        "Exact-ER": 21.765965847832945,
+        "Sketched-ER": 5.653687809112529
+      },
+      "recovery_ratio_of_means": 99.91918745164192
+    }
+  ],
+  "summaries": [
+    {
+      "case": "control",
+      "s": 0.25,
+      "method": "Random",
+      "mean_gain": 2.0314383561587874,
+      "std_gain": 0.0,
+      "min_gain": 2.0314383561587874,
+      "max_gain": 2.0314383561587874,
+      "mean_recovery": 33.40161670544864,
+      "counts_by_seed": [
+        {
+          "cross": 12,
+          "leaf": 3,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.25,
+      "method": "Degree",
+      "mean_gain": 6.077891927155179,
+      "std_gain": 0.0,
+      "min_gain": 6.077891927155179,
+      "max_gain": 6.077891927155179,
+      "mean_recovery": 99.9348151089599,
+      "counts_by_seed": [
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.25,
+      "method": "Exact-ER",
+      "mean_gain": 4.107301898761989,
+      "std_gain": 0.0,
+      "min_gain": 4.107301898761989,
+      "max_gain": 4.107301898761989,
+      "mean_recovery": 67.5336877932248,
+      "counts_by_seed": [
+        {
+          "cross": 7,
+          "leaf": 8,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.25,
+      "method": "Sketched-ER",
+      "mean_gain": 5.096843931981539,
+      "std_gain": 0.0,
+      "min_gain": 5.096843931981539,
+      "max_gain": 5.096843931981539,
+      "mean_recovery": 83.80408241648463,
+      "counts_by_seed": [
+        {
+          "cross": 4,
+          "leaf": 11,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.25,
+      "method": "POLAR",
+      "mean_gain": 6.078605398268337,
+      "std_gain": 0.0,
+      "min_gain": 6.078605398268337,
+      "max_gain": 6.078605398268337,
+      "mean_recovery": 99.9465462494003,
+      "counts_by_seed": [
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.25,
+      "method": "Exact-Greedy",
+      "mean_gain": 6.081856378608791,
+      "std_gain": 0.0,
+      "min_gain": 6.081856378608791,
+      "max_gain": 6.081856378608791,
+      "mean_recovery": 100.0,
+      "counts_by_seed": [
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.5,
+      "method": "Random",
+      "mean_gain": 7.271489611684075,
+      "std_gain": 0.0,
+      "min_gain": 7.271489611684075,
+      "max_gain": 7.271489611684075,
+      "mean_recovery": 51.00965382210802,
+      "counts_by_seed": [
+        {
+          "cross": 12,
+          "leaf": 3,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.5,
+      "method": "Degree",
+      "mean_gain": 13.809745231017871,
+      "std_gain": 0.0,
+      "min_gain": 13.809745231017871,
+      "max_gain": 13.809745231017871,
+      "mean_recovery": 96.8756556392278,
+      "counts_by_seed": [
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.5,
+      "method": "Exact-ER",
+      "mean_gain": 11.700174518193592,
+      "std_gain": 0.0,
+      "min_gain": 11.700174518193592,
+      "max_gain": 11.700174518193592,
+      "mean_recovery": 82.076972354098,
+      "counts_by_seed": [
+        {
+          "cross": 7,
+          "leaf": 8,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.5,
+      "method": "Sketched-ER",
+      "mean_gain": 13.48467319791365,
+      "std_gain": 0.0,
+      "min_gain": 13.48467319791365,
+      "max_gain": 13.48467319791365,
+      "mean_recovery": 94.59526843366116,
+      "counts_by_seed": [
+        {
+          "cross": 4,
+          "leaf": 11,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.5,
+      "method": "POLAR",
+      "mean_gain": 14.24350323313189,
+      "std_gain": 0.0,
+      "min_gain": 14.24350323313189,
+      "max_gain": 14.24350323313189,
+      "mean_recovery": 99.91847722214703,
+      "counts_by_seed": [
+        {
+          "cross": 1,
+          "leaf": 14,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "control",
+      "s": 0.5,
+      "method": "Exact-Greedy",
+      "mean_gain": 14.255124406534492,
+      "std_gain": 0.0,
+      "min_gain": 14.255124406534492,
+      "max_gain": 14.255124406534492,
+      "mean_recovery": 100.0,
+      "counts_by_seed": [
+        {
+          "cross": 1,
+          "leaf": 14,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.25,
+      "method": "Random",
+      "mean_gain": 2.9412257572095655,
+      "std_gain": 0.5862555221790926,
+      "min_gain": 2.3119003173652004,
+      "max_gain": 3.4718923089473037,
+      "mean_recovery": 48.3631132450094,
+      "counts_by_seed": [
+        {
+          "cross": 8,
+          "leaf": 7,
+          "cycle": 0
+        },
+        {
+          "cross": 12,
+          "leaf": 3,
+          "cycle": 0
+        },
+        {
+          "cross": 10,
+          "leaf": 5,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.25,
+      "method": "Degree",
+      "mean_gain": 4.793360720437913,
+      "std_gain": 0.00028361694234457237,
+      "min_gain": 4.79304023808163,
+      "max_gain": 4.793579329967656,
+      "mean_recovery": 78.81871768537368,
+      "counts_by_seed": [
+        {
+          "cross": 0,
+          "leaf": 10,
+          "cycle": 5
+        },
+        {
+          "cross": 0,
+          "leaf": 10,
+          "cycle": 5
+        },
+        {
+          "cross": 0,
+          "leaf": 10,
+          "cycle": 5
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.25,
+      "method": "Exact-ER",
+      "mean_gain": 4.105537845554579,
+      "std_gain": 0.0002273793558397834,
+      "min_gain": 4.105276602973959,
+      "max_gain": 4.1056911738265285,
+      "mean_recovery": 67.50863270462459,
+      "counts_by_seed": [
+        {
+          "cross": 7,
+          "leaf": 8,
+          "cycle": 0
+        },
+        {
+          "cross": 7,
+          "leaf": 8,
+          "cycle": 0
+        },
+        {
+          "cross": 7,
+          "leaf": 8,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.25,
+      "method": "Sketched-ER",
+      "mean_gain": 5.0948687450918255,
+      "std_gain": 0.0006566886741915569,
+      "min_gain": 5.09411999212881,
+      "max_gain": 5.095346884597063,
+      "mean_recovery": 83.77650707532285,
+      "counts_by_seed": [
+        {
+          "cross": 4,
+          "leaf": 11,
+          "cycle": 0
+        },
+        {
+          "cross": 4,
+          "leaf": 11,
+          "cycle": 0
+        },
+        {
+          "cross": 4,
+          "leaf": 11,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.25,
+      "method": "POLAR",
+      "mean_gain": 6.07857416275876,
+      "std_gain": 0.0001834270401979575,
+      "min_gain": 6.078407658340893,
+      "max_gain": 6.078770784664698,
+      "mean_recovery": 99.95188092147305,
+      "counts_by_seed": [
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        },
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        },
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.25,
+      "method": "Exact-Greedy",
+      "mean_gain": 6.08150054109791,
+      "std_gain": 0.00039274731129780403,
+      "min_gain": 6.081048106161234,
+      "max_gain": 6.081753729320553,
+      "mean_recovery": 100.0,
+      "counts_by_seed": [
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        },
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        },
+        {
+          "cross": 0,
+          "leaf": 15,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.5,
+      "method": "Random",
+      "mean_gain": 9.257624896592537,
+      "std_gain": 1.1707454345385795,
+      "min_gain": 7.9782600916523165,
+      "max_gain": 10.27554551025122,
+      "mean_recovery": 64.96166807299663,
+      "counts_by_seed": [
+        {
+          "cross": 8,
+          "leaf": 7,
+          "cycle": 0
+        },
+        {
+          "cross": 12,
+          "leaf": 3,
+          "cycle": 0
+        },
+        {
+          "cross": 10,
+          "leaf": 5,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.5,
+      "method": "Degree",
+      "mean_gain": 10.398292255165606,
+      "std_gain": 0.0005418592142061546,
+      "min_gain": 10.397666855526609,
+      "max_gain": 10.398621321923656,
+      "mean_recovery": 72.96585842115618,
+      "counts_by_seed": [
+        {
+          "cross": 0,
+          "leaf": 10,
+          "cycle": 5
+        },
+        {
+          "cross": 0,
+          "leaf": 10,
+          "cycle": 5
+        },
+        {
+          "cross": 0,
+          "leaf": 10,
+          "cycle": 5
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.5,
+      "method": "Exact-ER",
+      "mean_gain": 11.69405949487458,
+      "std_gain": 0.0005553972634674475,
+      "min_gain": 11.693419033056188,
+      "max_gain": 11.694408407043397,
+      "mean_recovery": 82.0583869511567,
+      "counts_by_seed": [
+        {
+          "cross": 7,
+          "leaf": 8,
+          "cycle": 0
+        },
+        {
+          "cross": 7,
+          "leaf": 8,
+          "cycle": 0
+        },
+        {
+          "cross": 7,
+          "leaf": 8,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.5,
+      "method": "Sketched-ER",
+      "mean_gain": 13.477413601010255,
+      "std_gain": 0.001683006671299923,
+      "min_gain": 13.475635597693781,
+      "max_gain": 13.478981969734662,
+      "mean_recovery": 94.57236142990955,
+      "counts_by_seed": [
+        {
+          "cross": 4,
+          "leaf": 11,
+          "cycle": 0
+        },
+        {
+          "cross": 4,
+          "leaf": 11,
+          "cycle": 0
+        },
+        {
+          "cross": 4,
+          "leaf": 11,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.5,
+      "method": "POLAR",
+      "mean_gain": 14.239384490754247,
+      "std_gain": 0.00021673861411266614,
+      "min_gain": 14.239212758012144,
+      "max_gain": 14.239628016650272,
+      "mean_recovery": 99.91918744891632,
+      "counts_by_seed": [
+        {
+          "cross": 1,
+          "leaf": 14,
+          "cycle": 0
+        },
+        {
+          "cross": 1,
+          "leaf": 14,
+          "cycle": 0
+        },
+        {
+          "cross": 1,
+          "leaf": 14,
+          "cycle": 0
+        }
+      ]
+    },
+    {
+      "case": "stress",
+      "s": 0.5,
+      "method": "Exact-Greedy",
+      "mean_gain": 14.250901007022009,
+      "std_gain": 0.00014383009653217473,
+      "min_gain": 14.250750506312272,
+      "max_gain": 14.251037078828233,
+      "mean_recovery": 100.0,
+      "counts_by_seed": [
+        {
+          "cross": 1,
+          "leaf": 14,
+          "cycle": 0
+        },
+        {
+          "cross": 1,
+          "leaf": 14,
+          "cycle": 0
+        },
+        {
+          "cross": 1,
+          "leaf": 14,
+          "cycle": 0
+        }
+      ]
+    }
+  ],
+  "graph_stats": [
+    {
+      "seed": 711,
+      "n": 805,
+      "N": 3000,
+      "n_C": 125,
+      "m_unique": 2353,
+      "C5_degree": [
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5
+      ]
+    },
+    {
+      "seed": 712,
+      "n": 805,
+      "N": 3000,
+      "n_C": 125,
+      "m_unique": 2354,
+      "C5_degree": [
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5
+      ]
+    },
+    {
+      "seed": 713,
+      "n": 805,
+      "N": 3000,
+      "n_C": 125,
+      "m_unique": 2360,
+      "C5_degree": [
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5
+      ]
+    }
+  ],
+  "pilot": [
+    {
+      "seed": 711,
+      "cw": 0.5,
+      "aw": 0.5,
+      "s": 0.25,
+      "polar": 6.078770784664698,
+      "degree": 4.793462593264451,
+      "er": 4.1056457598632505,
+      "counts": {
+        "cross": 0,
+        "leaf": 15,
+        "cycle": 0
+      },
+      "degree_counts": {
+        "cross": 0,
+        "leaf": 10,
+        "cycle": 5
+      },
+      "er_counts": {
+        "cross": 7,
+        "leaf": 8,
+        "cycle": 0
+      },
+      "runtime": 0.7716857129998971
+    },
+    {
+      "seed": 711,
+      "cw": 0.5,
+      "aw": 0.5,
+      "s": 0.5,
+      "polar": 14.239628016650272,
+      "degree": 10.398621321923656,
+      "er": 11.694351044524154,
+      "counts": {
+        "cross": 1,
+        "leaf": 14,
+        "cycle": 0
+      },
+      "degree_counts": {
+        "cross": 0,
+        "leaf": 10,
+        "cycle": 5
+      },
+      "er_counts": {
+        "cross": 7,
+        "leaf": 8,
+        "cycle": 0
+      },
+      "runtime": 0.7312838079997164
+    },
+    {
+      "seed": 711,
+      "cw": 1.0,
+      "aw": 1.0,
+      "s": 0.25,
+      "polar": 6.078778303610193,
+      "degree": 4.471864613505829,
+      "er": 4.105668757672845,
+      "counts": {
+        "cross": 0,
+        "leaf": 15,
+        "cycle": 0
+      },
+      "degree_counts": {
+        "cross": 0,
+        "leaf": 10,
+        "cycle": 5
+      },
+      "er_counts": {
+        "cross": 7,
+        "leaf": 8,
+        "cycle": 0
+      },
+      "runtime": 0.749056945999655
+    },
+    {
+      "seed": 711,
+      "cw": 1.0,
+      "aw": 1.0,
+      "s": 0.5,
+      "polar": 14.239680232825322,
+      "degree": 9.802892089730733,
+      "er": 11.694665787809015,
+      "counts": {
+        "cross": 1,
+        "leaf": 14,
+        "cycle": 0
+      },
+      "degree_counts": {
+        "cross": 0,
+        "leaf": 10,
+        "cycle": 5
+      },
+      "er_counts": {
+        "cross": 7,
+        "leaf": 8,
+        "cycle": 0
+      },
+      "runtime": 0.7441589350000868
+    }
+  ]
+}

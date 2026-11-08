@@ -1,0 +1,111 @@
+ca-HepPh uniform Exact(s=0.5) start
+  round 1/20 edge 1626 contenders (1, 0) 46s
+  round 2/20 edge 587 contenders (1, 0) 91s
+  round 3/20 edge 816 contenders (1, 0) 136s
+  round 4/20 edge 1269 contenders (1, 0) 180s
+  round 5/20 edge 1319 contenders (1, 0) 225s
+  round 6/20 edge 1444 contenders (1, 0) 270s
+  round 7/20 edge 1385 contenders (1, 0) 314s
+  round 8/20 edge 1624 contenders (1, 0) 357s
+  round 9/20 edge 352 contenders (1, 0) 403s
+  round 10/20 edge 990 contenders (1, 0) 448s
+  round 11/20 edge 7 contenders (1, 0) 494s
+  round 12/20 edge 1224 contenders (1, 0) 540s
+  round 13/20 edge 503 contenders (1, 0) 588s
+  round 14/20 edge 110 contenders (3, 3) 716s
+  round 15/20 edge 369 contenders (2, 2) 815s
+  round 16/20 edge 586 contenders (1, 0) 858s
+  round 17/20 edge 915 contenders (1, 0) 902s
+  round 18/20 edge 270 contenders (1, 0) 946s
+  round 19/20 edge 1275 contenders (1, 0) 989s
+  round 20/20 edge 428 contenders (1, 0) 1032s
+ca-HepPh uniform Exact(s=0.5) 1059s
+ca-HepPh uniform Exact-ER start
+  round 1/20 edge 1626 contenders (1, 0) 42s
+  round 2/20 edge 587 contenders (1, 0) 88s
+  round 3/20 edge 1319 contenders (1, 0) 131s
+  round 4/20 edge 816 contenders (1, 0) 173s
+  round 5/20 edge 1385 contenders (1, 0) 216s
+  round 6/20 edge 1269 contenders (1, 0) 260s
+  round 7/20 edge 586 contenders (1, 0) 303s
+  round 8/20 edge 369 contenders (1, 0) 345s
+  round 9/20 edge 110 contenders (1, 0) 389s
+  round 10/20 edge 1444 contenders (1, 0) 432s
+  round 11/20 edge 7 contenders (1, 0) 475s
+  round 12/20 edge 1624 contenders (1, 0) 518s
+  round 13/20 edge 990 contenders (1, 0) 562s
+  round 14/20 edge 352 contenders (1, 0) 604s
+  round 15/20 edge 1224 contenders (1, 0) 647s
+  round 16/20 edge 503 contenders (1, 0) 691s
+  round 17/20 edge 1354 contenders (1, 0) 734s
+  round 18/20 edge 270 contenders (1, 0) 779s
+  round 19/20 edge 1275 contenders (1, 0) 826s
+  round 20/20 edge 1990 contenders (1, 0) 871s
+ca-HepPh uniform Exact-ER 899s
+ca-HepPh uniform Exact-Logdet start
+  round 1/20 edge 1626 contenders (1, 0) 45s
+  round 2/20 edge 587 contenders (1, 0) 91s
+  round 3/20 edge 1269 contenders (1, 0) 136s
+  round 4/20 edge 816 contenders (1, 0) 181s
+  round 5/20 edge 1444 contenders (1, 0) 228s
+  round 6/20 edge 1624 contenders (1, 0) 274s
+  round 7/20 edge 352 contenders (1, 0) 319s
+  round 8/20 edge 990 contenders (1, 0) 365s
+  round 9/20 edge 1224 contenders (1, 0) 411s
+  round 10/20 edge 503 contenders (1, 0) 456s
+  round 11/20 edge 1319 contenders (1, 0) 502s
+  round 12/20 edge 915 contenders (1, 0) 548s
+  round 13/20 edge 1385 contenders (1, 0) 593s
+  round 14/20 edge 428 contenders (1, 0) 639s
+  round 15/20 edge 869 contenders (1, 0) 685s
+  round 16/20 edge 7 contenders (1, 0) 730s
+  round 17/20 edge 1082 contenders (1, 0) 776s
+  round 18/20 edge 1338 contenders (1, 0) 822s
+  round 19/20 edge 1398 contenders (1, 0) 867s
+  round 20/20 edge 1906 contenders (1, 0) 912s
+ca-HepPh uniform Exact-Logdet 942s
+ca-HepPh uniform Exact(s=0.25) start
+  round 1/20 edge 1626 contenders (1, 0) 46s
+  round 2/20 edge 587 contenders (1, 0) 91s
+  round 3/20 edge 816 contenders (1, 0) 136s
+  round 4/20 edge 1269 contenders (1, 0) 183s
+  round 5/20 edge 1444 contenders (1, 0) 229s
+  round 6/20 edge 1319 contenders (1, 0) 274s
+  round 7/20 edge 1624 contenders (1, 0) 321s
+  round 8/20 edge 352 contenders (1, 0) 366s
+  round 9/20 edge 990 contenders (1, 0) 412s
+  round 10/20 edge 1385 contenders (1, 0) 458s
+  round 11/20 edge 1224 contenders (1, 0) 502s
+  round 12/20 edge 503 contenders (1, 0) 548s
+  round 13/20 edge 7 contenders (1, 0) 594s
+  round 14/20 edge 915 contenders (1, 0) 640s
+  round 15/20 edge 369 contenders (3, 3) 775s
+  round 16/20 edge 110 contenders (2, 2) 881s
+  round 17/20 edge 586 contenders (1, 0) 927s
+  round 18/20 edge 428 contenders (1, 0) 973s
+  round 19/20 edge 869 contenders (1, 0) 1019s
+  round 20/20 edge 1082 contenders (1, 0) 1065s
+ca-HepPh uniform Exact(s=0.25) 1094s
+ca-HepPh uniform Exact(s=0.75) start
+  round 1/20 edge 1626 contenders (1, 0) 46s
+  round 2/20 edge 587 contenders (1, 0) 93s
+  round 3/20 edge 1319 contenders (1, 0) 139s
+  round 4/20 edge 816 contenders (1, 0) 185s
+  round 5/20 edge 1269 contenders (1, 0) 232s
+  round 6/20 edge 1444 contenders (1, 0) 276s
+  round 7/20 edge 1385 contenders (1, 0) 323s
+  round 8/20 edge 369 contenders (3, 3) 456s
+  round 9/20 edge 110 contenders (2, 2) 560s
+  round 10/20 edge 586 contenders (1, 0) 606s
+  round 11/20 edge 7 contenders (1, 0) 653s
+  round 12/20 edge 1624 contenders (1, 0) 698s
+  round 13/20 edge 990 contenders (1, 0) 744s
+  round 14/20 edge 352 contenders (1, 0) 789s
+  round 15/20 edge 1224 contenders (1, 0) 835s
+  round 16/20 edge 503 contenders (1, 0) 880s
+  round 17/20 edge 915 contenders (1, 0) 928s
+  round 18/20 edge 270 contenders (1, 0) 973s
+  round 19/20 edge 1275 contenders (1, 0) 1021s
+  round 20/20 edge 890 contenders (1, 0) 1068s
+ca-HepPh uniform Exact(s=0.75) 1096s
+ca-HepPh uniform CPU EXACT DONE

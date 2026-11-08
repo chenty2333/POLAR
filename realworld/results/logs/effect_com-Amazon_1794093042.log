@@ -1,0 +1,14 @@
+com-Amazon POLAR(s=0.25) 48.02s
+com-Amazon POLAR(s=0.5) 47.33s
+com-Amazon POLAR(s=0.75) 48.09s
+com-Amazon Sketched-ER 40.78s
+com-Amazon Sketched-Logdet 39.09s
+com-Amazon Degree 0.00s
+com-Amazon Random#0 0.00s
+com-Amazon Random#1 0.00s
+com-Amazon Random#2 0.00s
+com-Amazon evaluated frac(s=0.25)
+com-Amazon evaluated frac(s=0.5)
+com-Amazon evaluated frac(s=0.75)
+com-Amazon evaluated er
+com-Amazon evaluated logdet

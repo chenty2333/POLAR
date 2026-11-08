@@ -1,0 +1,9 @@
+com-Amazon Naive 0 197.22s spmv=621665
+com-Amazon POLAR(B=1) 0 12.15s spmv=32994
+com-Amazon POLAR(B=16) 0 20.08s spmv=62135
+com-Amazon POLAR(B=1) 1 12.10s spmv=32997
+com-Amazon POLAR(B=16) 1 20.08s spmv=62135
+com-Amazon Naive 1 197.14s spmv=621665
+com-Amazon POLAR(B=16) 2 20.07s spmv=62135
+com-Amazon Naive 2 197.14s spmv=621665
+com-Amazon POLAR(B=1) 2 12.03s spmv=32996

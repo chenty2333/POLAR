@@ -1,0 +1,9 @@
+email-Eu-core 0.01 POLAR/Exact(s=0.5) on f_0.5 = 1.0000
+email-Eu-core 0.1 POLAR/Exact(s=0.5) on f_0.5 = 1.0000
+email-Eu-core 1.0 POLAR/Exact(s=0.5) on f_0.5 = 0.9954
+Hamster 0.01 POLAR/Exact(s=0.5) on f_0.5 = 1.0000
+Hamster 0.1 POLAR/Exact(s=0.5) on f_0.5 = 1.0000
+Hamster 1.0 POLAR/Exact(s=0.5) on f_0.5 = 1.0000
+ca-GrQc 0.01 POLAR/Exact(s=0.5) on f_0.5 = 1.0000
+ca-GrQc 0.1 POLAR/Exact(s=0.5) on f_0.5 = 1.0000
+ca-GrQc 1.0 POLAR/Exact(s=0.5) on f_0.5 = 0.9952

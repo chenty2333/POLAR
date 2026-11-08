@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "/root/autodl-tmp/polar/run_real.py", line 189, in <module>
+    {'effect': effect, 'time': timing, 'opt': optimum, 'param': param}[a.mode](a)
+  File "/root/autodl-tmp/polar/run_real.py", line 128, in timing
+    out = pg.polar(G, cand, a.k, a.s[0], q=a.q, eps=a.eps, tol=a.tol, sketch=sk, time_limit=lim, **{'B': a.B, **cfg[nm]})
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/polar/polar_gpu.py", line 217, in polar
+    X, Y, h, t = bank()
+                 ^^^^^^
+  File "/root/autodl-tmp/polar/polar_gpu.py", line 201, in bank
+    XY = cp.concatenate([msolve(op, RHS[:, lo:lo + width], tau, active, tol, counter=cnt)[0]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/polar/polar_gpu.py", line 123, in msolve
+    d = cp.where(act, rn + be * d, d); r = cp.where(act, rn, r); rr = cp.where(act, rrn, rr)
+                      ~~~^~~~~~~~
+  File "cupy/_core/core.pyx", line 1566, in cupy._core.core._ndarray_base.__add__
+  File "cupy/_core/_kernel.pyx", line 1374, in cupy._core._kernel.ufunc.__call__
+  File "cupy/_core/_kernel.pyx", line 657, in cupy._core._kernel._get_out_args_from_optionals
+  File "cupy/_core/core.pyx", line 3342, in cupy._core.core._ndarray_init
+  File "cupy/_core/core.pyx", line 300, in cupy._core.core._ndarray_base._init_fast
+  File "cupy/cuda/memory.pyx", line 904, in cupy.cuda.memory.alloc
+  File "cupy/cuda/memory.pyx", line 1614, in cupy.cuda.memory.MemoryPool.malloc
+  File "cupy/cuda/memory.pyx", line 1635, in cupy.cuda.memory.MemoryPool.malloc
+  File "cupy/cuda/memory.pyx", line 1350, in cupy.cuda.memory.SingleDeviceMemoryPool.malloc
+  File "cupy/cuda/memory.pyx", line 1376, in cupy.cuda.memory.SingleDeviceMemoryPool._malloc
+  File "cupy/cuda/memory.pyx", line 1560, in cupy.cuda.memory.SingleDeviceMemoryPool._try_malloc
+cupy.cuda.memory.OutOfMemoryError: Out of memory allocating 927,527,424 bytes (allocated so far: 23,952,526,336 bytes).

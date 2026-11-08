@@ -1,0 +1,14 @@
+com-DBLP POLAR(s=0.25) 25.23s
+com-DBLP POLAR(s=0.5) 25.38s
+com-DBLP POLAR(s=0.75) 25.67s
+com-DBLP Sketched-ER 25.65s
+com-DBLP Sketched-Logdet 24.90s
+com-DBLP Degree 0.00s
+com-DBLP Random#0 0.00s
+com-DBLP Random#1 0.00s
+com-DBLP Random#2 0.00s
+com-DBLP evaluated frac(s=0.25)
+com-DBLP evaluated frac(s=0.5)
+com-DBLP evaluated frac(s=0.75)
+com-DBLP evaluated er
+com-DBLP evaluated logdet

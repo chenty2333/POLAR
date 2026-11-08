@@ -1,0 +1,45 @@
+ca-CondMat uniform Exact(s=0.5) start
+  round 1/20 edge 265 contenders (1, 0) 290s
+  round 2/20 edge 603 contenders (2, 2) 962s
+  round 3/20 edge 349 contenders (1, 0) 1257s
+  round 4/20 edge 948 contenders (1, 0) 1551s
+  round 5/20 edge 1087 contenders (1, 0) 1840s
+  round 6/20 edge 455 contenders (1, 0) 2135s
+  round 7/20 edge 119 contenders (1, 0) 2426s
+  round 8/20 edge 471 contenders (1, 0) 2718s
+  round 9/20 edge 1790 contenders (1, 0) 3009s
+  round 10/20 edge 1051 contenders (1, 0) 3299s
+  round 11/20 edge 1936 contenders (1, 0) 3589s
+  round 12/20 edge 364 contenders (1, 0) 3882s
+  round 13/20 edge 1438 contenders (1, 0) 4175s
+  round 14/20 edge 1184 contenders (1, 0) 4471s
+  round 15/20 edge 1016 contenders (1, 0) 4773s
+  round 16/20 edge 1263 contenders (1, 0) 5072s
+  round 17/20 edge 1289 contenders (1, 0) 5375s
+  round 18/20 edge 1442 contenders (1, 0) 5678s
+  round 19/20 edge 1026 contenders (1, 0) 5980s
+  round 20/20 edge 519 contenders (1, 0) 6279s
+ca-CondMat uniform Exact(s=0.5) 6471s
+ca-CondMat uniform Exact-ER start
+  round 1/20 edge 265 contenders (1, 0) 294s
+  round 2/20 edge 349 contenders (1, 0) 593s
+  round 3/20 edge 603 contenders (1, 0) 886s
+  round 4/20 edge 1936 contenders (1, 0) 1197s
+  round 5/20 edge 948 contenders (1, 0) 1523s
+  round 6/20 edge 1087 contenders (1, 0) 1853s
+  round 7/20 edge 455 contenders (1, 0) 2186s
+  round 8/20 edge 119 contenders (1, 0) 2511s
+  round 9/20 edge 471 contenders (1, 0) 2840s
+  round 10/20 edge 1790 contenders (1, 0) 3167s
+  round 11/20 edge 1051 contenders (1, 0) 3487s
+  round 12/20 edge 1438 contenders (1, 0) 3809s
+  round 13/20 edge 1289 contenders (1, 0) 4132s
+  round 14/20 edge 1442 contenders (1, 0) 4457s
+  round 15/20 edge 1164 contenders (1, 0) 4775s
+  round 16/20 edge 1016 contenders (1, 0) 5104s
+  round 17/20 edge 519 contenders (1, 0) 5423s
+  round 18/20 edge 1026 contenders (1, 0) 5747s
+  round 19/20 edge 1154 contenders (1, 0) 6069s
+  round 20/20 edge 364 contenders (1, 0) 6377s
+ca-CondMat uniform Exact-ER 6575s
+ca-CondMat uniform CPU EXACT DONE

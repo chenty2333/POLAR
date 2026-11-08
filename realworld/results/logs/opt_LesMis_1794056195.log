@@ -1,0 +1,5 @@
+LesMis 1 0.133789634067341 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 1.0, 'Degree': 1.0}
+LesMis 2 0.25677903858002793 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 1.0, 'Degree': 1.0}
+LesMis 3 0.3783984634306776 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.9639, 'Exact-Logdet': 1.0, 'Degree': 1.0}
+LesMis 4 0.48635049352881055 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 0.9986, 'Degree': 0.9986}
+LesMis 5 0.5936370962407196 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.9938, 'Exact-Logdet': 1.0, 'Degree': 0.9898}

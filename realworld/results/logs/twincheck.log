@@ -1,0 +1,15 @@
+twins 90 s 0.25 max rel err vs eig 1.73e-12
+twins 90 s 0.5 max rel err vs eig 8.33e-13
+twins 90 s 0.75 max rel err vs eig 1.08e-12
+email-Eu-core uniform 0.25 same seq gain new/old 1.000000000000 t 2.3s (old 2.4s) eig solves 2
+email-Eu-core uniform 0.5 same seq gain new/old 1.000000000000 t 2.3s (old 2.3s) eig solves 2
+email-Eu-core uniform 0.75 same seq gain new/old 1.000000000000 t 2.3s (old 2.3s) eig solves 2
+Hamster uniform 0.25 same seq gain new/old 1.000000000000 t 1.9s (old 1.1s) eig solves 0
+Hamster uniform 0.5 same seq gain new/old 1.000000000000 t 1.9s (old 1.9s) eig solves 0
+Hamster uniform 0.75 same seq gain new/old 1.000000000000 t 1.9s (old 2.0s) eig solves 0
+email-Eu-core 2hop 0.25 same seq gain new/old 1.000000000000 t 2.3s (old 2.4s) eig solves 2
+email-Eu-core 2hop 0.5 same seq gain new/old 1.000000000000 t 2.2s (old 1.9s) eig solves 2
+email-Eu-core 2hop 0.75 same seq gain new/old 1.000000000000 t 2.2s (old 1.9s) eig solves 2
+Hamster 2hop 0.25 same seq gain new/old 1.000000000000 t 2.3s (old 6.2s) eig solves 5
+Hamster 2hop 0.5 DIFF seq gain new/old 1.000000000000 t 2.2s (old 7.4s) eig solves 3
+Hamster 2hop 0.75 DIFF seq gain new/old 1.000000000000 t 2.2s (old 7.6s) eig solves 3

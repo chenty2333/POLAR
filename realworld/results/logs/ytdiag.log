@@ -1,0 +1,3 @@
+q=128 B=64 1072s  gain/best=1.0040  (POLAR q128B16=0.9858, Sketched-ER=1.0000)
+q=256 B=16 753s  gain/best=0.9948  (POLAR q128B16=0.9858, Sketched-ER=1.0000)
+YTDIAG DONE

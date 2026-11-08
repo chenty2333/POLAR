@@ -1,0 +1,5 @@
+Zachary 1 0.18373731986048014 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 1.0, 'Degree': 1.0}
+Zachary 2 0.34074059769880094 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 1.0, 'Degree': 0.9212}
+Zachary 3 0.4876150135394255 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 1.0, 'Degree': 0.9657}
+Zachary 4 0.6237854093455368 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 1.0, 'Degree': 0.9622}
+Zachary 5 0.7549330893766388 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 1.0, 'Degree': 0.9756}

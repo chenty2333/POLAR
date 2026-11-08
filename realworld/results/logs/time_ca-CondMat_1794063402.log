@@ -1,0 +1,9 @@
+ca-CondMat Naive 0 29.66s spmv=523665
+ca-CondMat POLAR(B=1) 0 3.40s spmv=27708
+ca-CondMat POLAR(B=16) 0 3.84s spmv=53094
+ca-CondMat POLAR(B=1) 1 3.28s spmv=27708
+ca-CondMat POLAR(B=16) 1 3.81s spmv=53094
+ca-CondMat Naive 1 29.68s spmv=523665
+ca-CondMat POLAR(B=16) 2 3.82s spmv=53094
+ca-CondMat Naive 2 29.67s spmv=523665
+ca-CondMat POLAR(B=1) 2 3.32s spmv=27708

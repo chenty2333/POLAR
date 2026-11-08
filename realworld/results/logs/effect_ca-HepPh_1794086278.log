@@ -1,0 +1,10 @@
+ca-HepPh POLAR(s=0.25) 8.91s
+ca-HepPh POLAR(s=0.5) 10.71s
+ca-HepPh POLAR(s=0.75) 11.11s
+ca-HepPh Sketched-ER 5.11s
+ca-HepPh Sketched-Logdet 4.35s
+ca-HepPh Degree 0.00s
+ca-HepPh Random#0 0.00s
+ca-HepPh Random#1 0.00s
+ca-HepPh Random#2 0.00s
+ca-HepPh evaluated frac(s=0.25)

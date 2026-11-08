@@ -1,0 +1,2585 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,amsthm,bm,cite,url,array,microtype}
+\usepackage{tikz,pgfplots,booktabs,multirow,subcaption}
+\usepackage{stfloats}
+\usepackage{placeins}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{calc,positioning,shapes.geometric}
+\definecolor{PolarBlue}{HTML}{245E8F}
+\definecolor{PolarTeal}{HTML}{237D78}
+\definecolor{PolarOrange}{HTML}{BA6A20}
+\captionsetup[table]{name=TABLE,labelsep=newline,font=footnotesize,textfont=sc,justification=centering}
+\captionsetup[figure]{name=Fig.,labelsep=period,font=footnotesize,justification=justified,singlelinecheck=false}
+\captionsetup[subfigure]{font=footnotesize,justification=centering,singlelinecheck=false}
+\SetAlFnt{\footnotesize}
+\SetAlCapFnt{\footnotesize}
+\SetAlCapNameFnt{\footnotesize\bfseries}
+\SetAlgoNlRelativeSize{-1}
+\SetAlgoInsideSkip{smallskip}
+\setlength{\textfloatsep}{9pt plus 2pt minus 2pt}
+\setlength{\dbltextfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\allowdisplaybreaks[2]
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{example}{Example}
+\newtheorem{remark}{Remark}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\spec}{spec}
+\newcommand{\POLAR}{\textsc{POLAR}}
+
+\title{POLAR: Fractional Spectral Link Recommendation\\
+via Pole-Shared Krylov Sketching\\ {\large (Extended Version with Complete Proofs)}}
+\author{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Spectral link recommendation improves a graph by selecting a small
+set of new edges. We study the regularized fractional inverse trace
+$\Tr((L+\sigma I)^{-s})$, $0<s<1$, whose spectral sensitivity
+$s(\lambda+\sigma)^{-s-1}$ balances structural improvements across
+scales and whose exponent selects a diffusion time scale.
+Optimizing this objective requires efficient marginal
+evaluation despite nonlinear matrix powers, non-submodularity,
+and repeated linear solves. We present \POLAR{} (Pole-shared
+Orthogonalized Lazy Algebraic Re-ranking). A positive Stieltjes
+quadrature yields a multi-pole Sherman--Morrison formula with
+dimension-free relative marginal error and
+$O((1+\log\kappa_*)\log(1/\epsilon))$ poles. Explicit
+submodularity-ratio and curvature bounds establish an error-aware
+greedy guarantee. The algorithm shares Krylov iterations across
+poles, maintains endpoint sketches across rounds, and re-ranks a
+lossless proxy shortlist algebraically, so $k$ rounds need $2q+kB$
+rather than $2kq$ multi-shift solves.
+On eighteen real networks with up to $4.0$ million vertices and
+$34.7$ million edges, \POLAR{} attains the exhaustive optimum on all
+small instances and $99.2$--$100\%$ of exact fractional greedy on
+five medium networks, while stochastic Lanczos greedy attains
+$93.3$--$99.5\%$ at $12$--$39\times$ the time. It is up to
+$17.8\times$ faster than sketch recomputation with identical
+selections and processes LiveJournal in 15 minutes ($B=1$). On a
+multiscale benchmark, its gains exceed exact inverse-trace greedy by
+$48.06\%$ and $21.77\%$ at $s=0.25$ and $s=0.5$.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Spectral graph optimization, link recommendation, fractional matrix
+functions, rational quadrature, Krylov methods, non-submodular optimization.
+\end{IEEEkeywords}
+
+\section{Introduction}
+\label{sec:introduction}
+Graph augmentation recommends new links to improve a structural
+objective under a limited budget. Effective-resistance minimization
+supports continuous edge-weight design~\cite{ghosh2008} and
+discrete augmentation~\cite{predari2023}; its regularized analogue
+minimizes $\Tr((L+\sigma I)^{-1})$.
+Related graph-mining tasks include current-flow group
+selection~\cite{li2019group,xia2025current} and forest-matrix
+queries on evolving graphs~\cite{sun2024forest}.
+Related criteria such as biharmonic distance use inverse-square
+spectral weights~\cite{lipman2010}. These exponents encode
+different preferences over structural scales. Fractional graph
+operators provide a continuous choice of spectral weighting and
+have received substantial numerical attention~\cite{benzi2022}.
+
+We optimize the fractional gain
+\begin{equation}
+f_s(S)=\Tr(M_0^{-s})-\Tr((M_0+L_S)^{-s}),\quad 0<s<1,
+\label{eq:intro-objective}
+\end{equation}
+where $M_0=L_0+\sigma I$ and $L_S$ contains the selected
+unit-weight links. Its eigenvalue sensitivity is
+$s(\lambda+\sigma)^{-s-1}$. Compared with $s=1$, a smaller
+exponent reduces the relative preference for the lowest
+nonconstant modes. On a graph containing strongly coupled cores, a weak
+bridge, and peripheral defects, this changes the competition
+between adding more intercore links and repairing leaf
+connections. Figure~\ref{fig:motivation} connects this spectral
+mechanism to both budget allocation and non-submodularity.
+
+Three obstacles arise when turning this objective into an
+efficient recommendation algorithm.
+\emph{First, fractional matrix powers lack the inverse's direct
+rank-one correction.} Approximating two traces separately to
+scalar accuracy $\eta$ gives only a $2n\eta$ absolute
+marginal-error bound. We instead need accuracy relative to the
+marginal itself.
+\emph{Second, the gain is not generally submodular.} A four-vertex
+example exhibits increasing marginal returns, invalidating the
+stale upper bounds used by classical CELF evaluation~\cite{leskovec2007}.
+\emph{Third, linear algebra repeats across poles and rounds.}
+With $p$ poles, sketch dimension $q$, $N$ candidates, and
+$t$ Krylov iterations per right-hand side, recomputing two sketch
+banks for $k$ rounds uses up to $2kqt$ SpMVs and
+$O(kpqN)$ candidate-scoring work. Shift invariance shares the
+matrix products across poles~\cite{jegerlehner1996}; exploiting
+the evolving graph requires additional structure.
+
+We present \POLAR{}, \emph{Pole-shared Orthogonalized Lazy
+Algebraic Re-ranking}, with four contributions.
+\begin{enumerate}
+\item \textbf{Accurate marginal algebra.}
+Positive Stieltjes quadrature converts a fractional marginal into
+a sum of rank-one inverse updates. Relative derivative accuracy,
+integrated along the update path, gives an $n$-independent
+marginal guarantee with
+$O((1+\log\kappa_*)\log(1/\epsilon))$ poles.
+\item \textbf{Optimization guarantees beyond submodularity.}
+We derive explicit submodularity-ratio and budget-restricted
+curvature bounds and an error-aware greedy factor in the
+ratio--curvature framework~\cite{bian2017}. The log-trace
+objective provides a strictly monotone, submodular reference.
+\item \textbf{Reuse across poles, rounds, and candidates.}
+A single selected-edge solve updates all poles and all endpoint
+sketches. Shared-direction norm caches reduce per-round scoring
+and maintenance to $O(pn_{\mathcal C}q+pN)$.
+Valid envelopes identify the proxy shortlist, whose algebraic
+re-ranking reuses the champion's solve.
+\item \textbf{Real-network evaluation.}
+On eighteen networks with up to $34.7$ million edges, \POLAR{}
+matches exhaustive search on small instances, attains
+$99.2$--$100\%$ of exact fractional greedy, and is $8.9$--$17.8\times$
+faster than sketch recomputation. A heat-trace representation shows
+that the exponent orders recommendations by diffusion time scale,
+which the selected links confirm.
+\end{enumerate}
+
+
+\section{Preliminaries, Problem Statement, and Spectral Motivation}
+\label{sec:preliminaries}
+
+\subsection{Graph Model and Optimization Objectives}
+
+
+
+Let $G_0=(V,E_0,w_0)$ be an undirected graph with $n$ vertices and nonnegative edge weights. Write $L_0$ for its Laplacian and $d_{\max,0}$ for its maximum weighted degree. Connectivity is not required. Let $\mathcal C$ contain $N$ distinct candidate non-loop edges not in $E_0$, and let $1\le k\le N$. Every selected candidate is added with unit weight. For $e=\{u,v\}$, choose either orientation and define $b_e=\bm e_u-\bm e_v$, so $\|b_e\|_2^2=2$.
+
+The active endpoints are $V_{\mathcal C}=\bigcup_{e\in\mathcal C}\operatorname{supp}(b_e)$, with $n_{\mathcal C}=|V_{\mathcal C}|\le\min\{n,2N\}$. We write $p$ for the number of quadrature poles, $q$ for the dimension of each sketch bank, $B$ for the re-ranked shortlist size, and $t$ for the maximum number of CG iterations per right-hand side.
+
+For $S\subseteq\mathcal C$, define
+\begin{equation}
+\begin{aligned}
+L_S&=\sum_{e\in S}b_eb_e^\top,\\
+M_S=M(S)&=L_0+\sigma I+L_S,\qquad \sigma>0.
+\end{aligned}
+\label{eq:matrix-model}
+\end{equation}
+We use $M_0=M_\varnothing$. Fractional powers and logarithms are defined by spectral calculus for positive definite matrices. The two normalized objectives are
+\begin{align}
+f_s(S)&=\Tr(M_0^{-s})-\Tr(M_S^{-s}),\quad 0<s<1,
+\label{eq:fractional-objective}\\
+f_{\log}(S)&=\Tr(\log M_S)-\Tr(\log M_0)\notag\\
+&=\log\det M_S-\log\det M_0.
+\label{eq:log-objective}
+\end{align}
+The optimization problem is
+\begin{equation}
+\max_{S\subseteq\mathcal C,\ |S|\le k} f_s(S).
+\label{eq:problem}
+\end{equation}
+The log-determinant gain provides the comparison objective in Proposition~\ref{prop:logdet-submodularity}.
+At $s=1$ and $\sigma=1$, the inverse is the forest matrix,
+which supports forest closeness and dynamic proximity
+queries~\cite{grinten2021forest,sun2024forest}. Laplacian resolvents
+also appear in Friedkin--Johnsen opinion
+quantities~\cite{sun2025opinion}. The choice of spectral function
+matters: Kemeny's constant can increase after an edge
+insertion~\cite{kirkland2025}, whereas the inverse-trace objectives
+considered here strictly decrease.
+
+The positive marginal and the negative trace change are denoted by
+\begin{align}
+g_s(e\mid S)&=f_s(S\cup\{e\})-f_s(S),\\
+\Delta_s(e;M_S)&=\Tr((M_S+b_eb_e^\top)^{-s})-\Tr(M_S^{-s})\notag\\
+&=-g_s(e\mid S).
+\end{align}
+Let $O$ denote an optimal budget-$k$ set, and let $S_k^{\mathrm{EG}}$ denote the output of true-marginal greedy.
+
+All comparison sets used below contain at most $2k$ added edges. For such sets,
+\begin{equation}
+\sigma I\preceq M_S\preceq\Lambda I,\qquad
+\Lambda=\sigma+2d_{\max,0}+4k,\qquad
+\kappa_*=\Lambda/\sigma.
+\label{eq:spectral-window}
+\end{equation}
+Indeed, for every $x\in\mathbb R^n$,
+\[
+\begin{aligned}
+x^\top L_0x
+&=\sum_{\{u,v\}\in E_0}w_{uv}(x_u-x_v)^2\\
+&\le 2\sum_vd_vx_v^2
+\le 2d_{\max,0}\|x\|_2^2,
+\end{aligned}
+\]
+and
+\[
+\|L_S\|_2\le\sum_{e\in S}\|b_eb_e^\top\|_2
+=2|S|\le4k.
+\]
+The same interval contains an edge-addition path whose endpoint has at most $2k$ selected edges.
+
+\subsection{Spectral Sensitivity and Budget Allocation}
+\begin{figure*}[t]
+\centering
+\begin{subfigure}[t]{.47\textwidth}
+\centering
+\begin{tikzpicture}[x=.95cm,y=.95cm,
+vtx/.style={circle,draw=PolarBlue,fill=white,minimum size=6.5mm,inner sep=0pt,font=\small},
+every node/.style={font=\footnotesize}]
+\path[use as bounding box](-.4,-2.25) rectangle(7.7,1.55);
+\node[vtx](v3) at(0,0){3};
+\node[vtx](v2) at(1.2,0){2};
+\node[vtx](v1) at(2.4,0){1};
+\node[vtx](v4) at(2.4,-1.35){4};
+\draw[line width=1.1pt,PolarBlue](v3)--(v2)--(v1);
+\draw[dashed,line width=1.2pt,PolarOrange]
+(v1) to[bend right=42] node[above,text=PolarOrange]{$e=\{1,3\}$}(v3);
+\draw[dashed,line width=1.2pt,PolarTeal]
+(v1)--node[right,text=PolarTeal]{$a=\{1,4\}$}(v4);
+\node[anchor=west,align=left] at(3.9,.25)
+{$g_{1/2}(e\mid\varnothing)\approx0.3397$\\[3pt]
+ $g_{1/2}(e\mid\{a\})\approx0.3487$};
+\node[anchor=west,text=PolarOrange,font=\bfseries\small] at(3.9,-.8)
+{Marginal gain increases};
+\node[anchor=west] at(0,-2.05)
+{$\sigma=1/4$;\quad solid: base edges;\quad dashed: candidates};
+\end{tikzpicture}
+\caption{An exact four-vertex counterexample to diminishing returns
+(Example~\ref{ex:four-vertex}).}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{.50\textwidth}
+\centering
+\begin{tikzpicture}[x=.9cm,y=.85cm,every node/.style={font=\footnotesize}]
+\path[use as bounding box](-.25,-3.55) rectangle(8.1,1.65);
+\node[ellipse,draw=PolarBlue,fill=PolarBlue!7,
+minimum width=2.4cm,minimum height=1.25cm,align=center](left)at(1.7,.35)
+{390-vertex core\\3 cycles, weight 10};
+\node[ellipse,draw=PolarBlue,fill=PolarBlue!7,
+minimum width=2.4cm,minimum height=1.25cm,align=center](right)at(6.0,.35)
+{390-vertex core\\3 cycles, weight 10};
+\draw[line width=1.1pt,PolarOrange](left.east)--
+node[above,align=center]{weak bridge\\$w=0.5$}(right.west);
+\foreach \x [count=\i] in {.45,1.1,1.75,2.4,3.05}{
+\node[circle,draw=PolarTeal,fill=PolarTeal!15,inner sep=1.8pt](leaf\i)at(\x,-1.15){};
+\draw[PolarTeal,thin](left.south)--(leaf\i);
+}
+\node[text=PolarTeal]at(1.75,-1.65){20 leaves, $w=0.3$};
+\foreach \i/\ang in {0/90,1/18,2/-54,3/-126,4/162}{
+  \coordinate (c\i) at ($(6.0,-1.15)+(\ang:.61)$);
+  \draw[PolarOrange!35,thin](left.south east)--(c\i);
+}
+\draw[PolarOrange,line width=.9pt](c0)--(c1)--(c2)--(c3)--(c4)--cycle;
+\draw[PolarOrange,dashed,thin](c0)--(c2)--(c4)--(c1)--(c3)--cycle;
+\foreach \i in {0,1,2,3,4}{
+  \filldraw[draw=PolarOrange,fill=white](c\i)circle(1.8pt);
+}
+\node[align=center,text=PolarOrange]at(6.0,-2.05)
+{Five-vertex cycle + five core ties\\$w=0.5$; dashed: candidate chords};
+\node[align=center]at(3.95,-2.65)
+{Intercore / leaf / cycle budget:\quad Degree $0/10/5$\\
+ \POLAR{} $0/15/0$ ($s=.25$), $1/14/0$ ($s=.5$)};
+\node[rounded corners=2pt,fill=PolarTeal!10,text=PolarTeal,
+inner sep=3pt]at(2.0,-3.35){Over Degree: \textbf{+26.81\%}};
+\node[rounded corners=2pt,fill=PolarBlue!9,text=PolarBlue,
+inner sep=3pt]at(6.0,-3.35){Over Degree: \textbf{+36.94\%}};
+\end{tikzpicture}
+\caption{Heterogeneous multiscale graph, $n=805$. Improvements are
+three-seed mean gains at $s=.25$ (left) and $s=.5$ (right).}
+\end{subfigure}
+\caption{Why fractional spectral optimization needs both a distinct
+objective and non-submodular evaluation. (a) A candidate becomes
+more valuable after another edge is inserted. (b) Strongly coupled cores,
+a weak bridge, peripheral leaves, and an independently anchored cycle
+separate degree and spectral rankings. \POLAR{} uses $q=24$, $B=4$;
+its gains also exceed Exact-ER by $48.06\%$ and $21.77\%$, respectively.}
+\label{fig:motivation}
+\end{figure*}
+
+
+
+For a candidate $e$, consider $M_t=M_S+t b_eb_e^\top$, $0\le t\le1$. Let $\lambda_i(t)$ and $v_i(t)$ be an orthonormal eigensystem of $L_0+L_S+t b_eb_e^\top$.
+
+\begin{lemma}[Spectral sensitivity]
+\label{lem:spectral-sensitivity}
+For every $0<s<1$,
+\begin{equation}
+\begin{aligned}
+g_s(e\mid S)
+&=s\int_0^1 b_e^\top M_t^{-s-1}b_e\,dt\\
+&=\int_0^1\sum_{i=1}^n
+\frac{s(v_i(t)^\top b_e)^2}{(\lambda_i(t)+\sigma)^{s+1}}\,dt.
+\end{aligned}
+\label{eq:path-marginal}
+\end{equation}
+In particular, every candidate has a strictly positive marginal.
+\end{lemma}
+\begin{proof}
+Set $c_s=\sin(\pi s)/\pi>0$. The Stieltjes identity, derived explicitly in~\eqref{eq:stieltjes}, gives
+\[
+\Tr(M_t^{-s})
+=c_s\int_0^\infty \tau^{-s}\Tr((M_t+\tau I)^{-1})\,d\tau,
+\]
+Differentiating an inverse and using cyclic invariance of trace gives
+\[
+\frac{d}{dt}\Tr((M_t+\tau I)^{-1})
+=-b_e^\top(M_t+\tau I)^{-2}b_e.
+\]
+The absolute value is at most $2/(\sigma+\tau)^2$. Its product with $\tau^{-s}$ is integrable at zero because $s<1$ and at infinity because $s>0$. Differentiation under the integral is therefore valid. Differentiating the scalar Stieltjes identity and applying it to each eigenvalue of $M_t$ yields
+\[
+\begin{aligned}
+-\frac{d}{dt}\Tr(M_t^{-s})
+&=c_s\int_0^\infty\tau^{-s}b_e^\top(M_t+\tau I)^{-2}b_e\,d\tau\\
+&=s b_e^\top M_t^{-s-1}b_e.
+\end{aligned}
+\]
+Integrating from zero to one proves the first equality in~\eqref{eq:path-marginal}. Diagonalizing $M_t$ proves the second. The quadratic form is positive because $M_t^{-s-1}\succ0$ and $b_e\ne0$, proving strict positivity.
+\end{proof}
+
+For a simple eigenvalue, differentiating its normalized eigenvector equation also gives
+$\dot\lambda_i(t)=(v_i(t)^\top b_e)^2$: multiply the differentiated equation by $v_i(t)^\top$, cancel the eigenvector-derivative terms, and use $v_i(t)^\top v_i(t)=1$. Thus the scalar sensitivity is
+\begin{equation}
+w_s(\lambda)=s(\lambda+\sigma)^{-s-1}.
+\label{eq:spectral-weight}
+\end{equation}
+Equation~\eqref{eq:path-marginal} remains valid at repeated eigenvalues, where a particular eigenvector derivative need not be defined.
+
+For $0\le\lambda_{\mathrm{lo}}<\lambda_{\mathrm{hi}}$,
+\begin{equation}
+\frac{w_s(\lambda_{\mathrm{lo}})}{w_s(\lambda_{\mathrm{hi}})}
+=\left(\frac{\lambda_{\mathrm{hi}}+\sigma}
+{\lambda_{\mathrm{lo}}+\sigma}\right)^{s+1}.
+\label{eq:relative-spectral-weight}
+\end{equation}
+This ratio increases with $s$. At $s=1$ the exponent is two; for $0<s<0.5$ it lies between one and $1.5$. Fractional objectives therefore attenuate the \emph{relative} emphasis on low frequencies. The constant eigenvector does not contribute, since $b_e^\top\bm 1=0$. For unit-weight additions, the path integral combines evolving eigenvalues with their candidate-specific overlaps.
+
+Figure~\ref{fig:motivation}(b) depicts the heterogeneous multiscale
+benchmark. A low-degree cycle with independent core attachments
+separates local degree from global spectral value. Exact inverse-trace
+greedy selects seven intercore links, while Degree spends five links
+inside this cycle. Fractional selection concentrates on peripheral
+repairs. Table~\ref{tab:multiscale} reports the gains and allocations
+over three graph realizations.
+
+\subsection{An Exact Obstruction to Submodularity}
+A set function is submodular if its marginal satisfies
+$g(e\mid A)\ge g(e\mid B)$ whenever $A\subseteq B$ and $e\notin B$.
+The following instance disproves this property for the fractional objective in general.
+
+
+\begin{example}[A four-vertex obstruction to submodularity]
+\label{ex:four-vertex}
+Let $V=\{1,2,3,4\}$, $E_0=\{\{1,2\},\{2,3\}\}$, $\sigma=1/4$, and $s=1/2$.
+All base and added edges have unit weight. Let $e=\{1,3\}$ and $a=\{1,4\}$.
+For the normalized gain $f_s$, its marginals obey
+\begin{align}
+ g_s(e\mid\varnothing)&=\frac{2}{\sqrt5}-\frac{2}{\sqrt{13}},\\
+ g_s(e\mid\{a\})&=\frac{8\sqrt2}{7}+\frac23
+ -\frac2{\sqrt5}-\frac2{\sqrt{13}}-\frac2{\sqrt{17}},
+\end{align}
+and $g_s(e\mid\{a\})-g_s(e\mid\varnothing)>1/375>0$.
+Thus $f_s$ is not submodular, even for unweighted base graphs and unit-weight additions.
+\end{example}
+\begin{proof}
+The base graph is a three-vertex path and an isolated vertex, so its Laplacian has eigenvalues $0,0,1,3$.
+Indeed, $(1,1,1,0)^\top$ and $(0,0,0,1)^\top$ are zero eigenvectors, while $(1,0,-1,0)^\top$ and $(1,-2,1,0)^\top$ have eigenvalues $1$ and $3$.
+Adding $e$ gives a triangle and an isolated vertex, with eigenvalues $0,0,3,3$: every vector supported on the first three coordinates and summing to zero has eigenvalue $3$.
+
+Adding $a$ to the base graph gives the path $3$--$2$--$1$--$4$, whose Laplacian is
+\[
+L_a=\begin{pmatrix}
+2&-1&0&-1\\-1&2&-1&0\\0&-1&1&0\\-1&0&0&1
+\end{pmatrix}.
+\]
+The subspaces $\{(x,x,y,y)^\top\}$ and $\{(x,-x,y,-y)^\top\}$ are invariant.
+On these subspaces, the coordinate matrices are respectively
+$\bigl(\begin{smallmatrix}1&-1\\-1&1\end{smallmatrix}\bigr)$ and
+$\bigl(\begin{smallmatrix}3&1\\1&1\end{smallmatrix}\bigr)$.
+Their eigenvalues are $0,2$ and $2-\sqrt2,2+\sqrt2$, respectively.
+After adding both edges, the graph is a triangle with a pendant vertex.
+Its eigenvectors $(1,1,1,1)^\top$, $(0,1,1,-2)^\top$,
+$(0,1,-1,0)^\top$, and $(-3,1,1,1)^\top$ have eigenvalues $0,1,3,4$.
+These four independent vectors give the complete spectrum.
+
+Adding $\sigma I$ shifts every eigenvalue by $1/4$.
+Subtracting the trace of the inverse square root after adding $e$ from the trace before adding it therefore gives
+$g_s(e\mid\varnothing)=2/\sqrt5-2/\sqrt{13}$.
+For the second marginal, the three nonzero path eigenvalues contribute
+\[
+\frac2{\sqrt{9-4\sqrt2}}+\frac23+
+\frac2{\sqrt{9+4\sqrt2}}.
+\]
+Both terms in the following sum are positive, and
+\[
+\left(\frac1{\sqrt{9-4\sqrt2}}+
+\frac1{\sqrt{9+4\sqrt2}}\right)^2
+=\frac{18}{49}+\frac27=\frac{32}{49}.
+\]
+Consequently the sum equals $4\sqrt2/7$.
+The common zero-eigenvalue contribution cancels, yielding the stated second marginal.
+Their difference is
+\[
+D=\frac{8\sqrt2}{7}+\frac23-\frac4{\sqrt5}-\frac2{\sqrt{17}}.
+\]
+The inequalities $707^2<2\cdot500^2$, $16\cdot10000<5\cdot179^2$,
+and $4\cdot10000<17\cdot49^2$ imply
+\[
+\sqrt2>\frac{707}{500},\qquad
+\frac4{\sqrt5}<\frac{179}{100},\qquad
+\frac2{\sqrt{17}}<\frac{49}{100}.
+\]
+Substitution gives
+\[
+D>\frac87\frac{707}{500}+\frac23
+-\frac{179}{100}-\frac{49}{100}=\frac1{375}>0.
+\]
+This strictly reverses the diminishing-returns inequality for
+$\varnothing\subset\{a\}$ and $e\notin\{a\}$.
+\end{proof}
+
+
+Numerically, the two marginals are $0.3397269948$ and $0.3487121007$; the strict inequality above is certified without floating-point arithmetic.
+
+\section{Quadrature-Based Marginal Formula and Approximation Guarantees}
+\label{sec:guarantees}
+This extended version of the conference paper contains the complete proofs of all results.
+
+\subsection{Positive Composite Quadrature}
+
+Contour-integral quadrature and conformal maps provide rapidly
+convergent rational approximations to matrix powers and
+logarithms~\cite{hale2008}. We use a positive Stieltjes
+representation so that every pole contributes a nonnegative
+marginal. The approximation below controls a derivative along
+the update path and therefore avoids subtracting two approximate
+traces.
+
+Let $c_s=\sin(\pi s)/\pi$ for $0<s<1$. For $x>0$, the Stieltjes representation is
+\begin{equation}
+x^{-s}=c_s\int_0^\infty\frac{\tau^{-s}}{x+\tau}\,d\tau.
+\label{eq:stieltjes}
+\end{equation}
+Indeed, substituting $\tau=xu$ reduces the right-hand side to
+\[
+c_sx^{-s}\int_0^\infty\frac{u^{-s}}{1+u}\,du
+=c_sx^{-s}\Gamma(1-s)\Gamma(s)=x^{-s},
+\]
+where the last equality is Euler's reflection formula.
+
+Fix $0<a\le b$, and define
+\[
+K=\left\lceil\log_2(b/a)\right\rceil,\qquad
+C=2^Ka,\qquad L_\ell=2^\ell a.
+\]
+When $K=0$, there are no middle panels. We partition the integral in \eqref{eq:stieltjes} into $[0,a]$, the intervals $[L_\ell,2L_\ell]$ for $0\le\ell<K$, and $[C,\infty)$. For an integer $r\ge1$, let
+\[
+\{(\ell_i,A_i)\}_{i=1}^r,\quad
+\{(\xi_i,W_i)\}_{i=1}^r,\quad
+\{(v_i,B_i)\}_{i=1}^r
+\]
+be the $r$-point Gaussian rules for the measures $u^{-s}\,du$ on $[0,1]$, $du$ on $[-1,1]$, and $u^{s-1}\,du$ on $[0,1]$, respectively. All weights are strictly positive, all nodes are interior, and each rule integrates polynomials of degree at most $2r-1$ exactly~\cite{dlmf-quadrature}.
+
+These rules can be specified explicitly by Jacobi polynomials~\cite{dlmf-jacobi}. Write $P_m^{(\alpha,\beta)}$ for the standard Jacobi polynomial normalized by $P_m^{(\alpha,\beta)}(1)=\binom{m+\alpha}{m}$. Let $z_i^{(\alpha,\beta)}$ be the $i$th root of $P_r^{(\alpha,\beta)}$, and define
+\[
+h_m^{(\alpha,\beta)}
+=\frac{2^{\alpha+\beta+1}}{2m+\alpha+\beta+1}
+ \frac{\Gamma(m+\alpha+1)\Gamma(m+\beta+1)}
+ {m!\,\Gamma(m+\alpha+\beta+1)}.
+\]
+The Christoffel weights are
+\[
+w_i^{(\alpha,\beta)}
+=\left[\sum_{m=0}^{r-1}
+\frac{P_m^{(\alpha,\beta)}(z_i^{(\alpha,\beta)})^2}
+{h_m^{(\alpha,\beta)}}\right]^{-1}.
+\]
+The required nodes and weights are
+\begin{align*}
+\ell_i&=\frac{1+z_i^{(0,-s)}}2,& A_i&=2^{s-1}w_i^{(0,-s)},\\
+\xi_i&=z_i^{(0,0)},& W_i&=w_i^{(0,0)},\\
+v_i&=\frac{1+z_i^{(0,s-1)}}2,& B_i&=2^{-s}w_i^{(0,s-1)}.
+\end{align*}
+All Jacobi parameters used here exceed $-1$.
+
+The low-tail poles and weights are
+\begin{equation}
+\tau_i^{\mathrm{lo}}=a\ell_i,\qquad
+\omega_i^{\mathrm{lo}}=c_sa^{1-s}A_i.
+\label{eq:low-poles}
+\end{equation}
+For the middle panel $[L_\ell,2L_\ell]$, they are
+\begin{equation}
+\begin{split}
+\tau_{\ell i}^{\mathrm{mid}}&=\frac{L_\ell}{2}(3+\xi_i),\\
+\omega_{\ell i}^{\mathrm{mid}}&=c_s\frac{L_\ell}{2}W_i
+\bigl(\tau_{\ell i}^{\mathrm{mid}}\bigr)^{-s}.
+\end{split}
+\label{eq:middle-poles}
+\end{equation}
+For the high tail, substituting $\tau=C/u$ gives
+\[
+\int_C^\infty\frac{\tau^{-s}}{x+\tau}\,d\tau
+=C^{1-s}\int_0^1\frac{u^{s-1}}{C+xu}\,du.
+\]
+Its poles and weights are consequently
+\begin{equation}
+\tau_i^{\mathrm{hi}}=\frac C{v_i},\qquad
+\omega_i^{\mathrm{hi}}=c_sC^{1-s}\frac{B_i}{v_i}.
+\label{eq:high-poles}
+\end{equation}
+Enumerating these three collections produces $p=(K+2)r$ strictly positive poles and weights and the rational function
+\begin{equation}
+r_p(x)=\sum_{j=1}^p\frac{\omega_j}{x+\tau_j}.
+\label{eq:rational}
+\end{equation}
+The two tails are transformed, rather than truncated.
+
+\subsection{Dimension-Free Relative Marginal Error}
+
+\begin{lemma}[A positive Gaussian quadrature estimate]
+\label{lem:gaussian-relative}
+Let $\mu$ be a finite positive measure on $[-1,1]$ and let $Q_r$ be a positive $r$-point Gaussian rule for $\mu$. Suppose that $F$ is analytic in a neighborhood of $\{z:|z|\le2\}$, that $|F(z)|\le M$ on $|z|=2$, and that $F(u)\ge m>0$ on $[-1,1]$. Then
+\begin{equation}
+\left|\int F\,d\mu-Q_r[F]\right|
+\le\frac{4M}{m}4^{-r}\int F\,d\mu.
+\label{eq:gaussian-relative}
+\end{equation}
+Moreover, for $\ell(u)=(1+u)/2$, provided $\int\ell\,d\mu>0$,
+\begin{equation}
+\left|\int\ell F\,d\mu-Q_r[\ell F]\right|
+\le\frac{8M}{m}4^{-r}\int\ell F\,d\mu.
+\label{eq:gaussian-linear-relative}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Write the Taylor series $F(z)=\sum_{\nu=0}^\infty a_\nu z^\nu$. Cauchy's coefficient estimate on $|z|=2$ gives $|a_\nu|\le M2^{-\nu}$. For $P(u)=\sum_{\nu=0}^{2r-1}a_\nu u^\nu$ and $u\in[-1,1]$,
+\[
+|F(u)-P(u)|\le M\sum_{\nu=2r}^\infty2^{-\nu}
+=2M4^{-r}.
+\]
+Exactness on $P$ and on constants, together with positivity of the weights, yields
+\begin{align*}
+\left|\int F\,d\mu-Q_r[F]\right|
+&=\left|\int(F-P)\,d\mu-Q_r[F-P]\right|\\
+&\le2M4^{-r}\bigl(\mu([-1,1])+Q_r[1]\bigr)\\
+&=4M4^{-r}\mu([-1,1]).
+\end{align*}
+Since $\int F\,d\mu\ge m\mu([-1,1])$, this proves \eqref{eq:gaussian-relative}.
+
+For the second assertion, let $P_-(u)=\sum_{\nu=0}^{2r-2}a_\nu u^\nu$. Then
+\[
+\sup_{[-1,1]}|F-P_-|
+\le M\sum_{\nu=2r-1}^\infty2^{-\nu}=4M4^{-r}.
+\]
+The polynomial $\ell P_-$ has degree at most $2r-1$. Since $\ell\ge0$ and $Q_r[\ell]=\int\ell\,d\mu$, we obtain
+\begin{align*}
+\left|\int\ell F\,d\mu-Q_r[\ell F]\right|
+&\le4M4^{-r}\left(\int\ell\,d\mu+Q_r[\ell]\right)\\
+&=8M4^{-r}\int\ell\,d\mu\\
+&\le\frac{8M}{m}4^{-r}\int\ell F\,d\mu.
+\end{align*}
+This is \eqref{eq:gaussian-linear-relative}.
+\end{proof}
+
+\begin{lemma}[Uniform relative derivative approximation]
+\label{lem:derivative-quadrature}
+For \eqref{eq:rational}, define
+\[
+D(x)=sx^{-s-1},\qquad D_p(x)=\sum_{j=1}^p\frac{\omega_j}{(x+\tau_j)^2}.
+\]
+For every $x\in[a,b]$,
+\begin{equation}
+|D_p(x)-D(x)|\le256\,4^{-r}D(x).
+\label{eq:derivative-relative}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Differentiating \eqref{eq:stieltjes} under the integral gives
+\begin{equation}
+D(x)=c_s\int_0^\infty\frac{\tau^{-s}}{(x+\tau)^2}\,d\tau.
+\label{eq:derivative-integral}
+\end{equation}
+The integrable function $\tau^{-s}/(a+\tau)^2$ justifies this differentiation uniformly for $x\in[a,b]$. We bound the relative error separately on each positive integral piece.
+
+For the low tail, put $\tau=au$ and $v=2u-1$. Apart from the positive factor $c_sa^{1-s}(x+a/2)^{-2}$, the kernel against $u^{-s}\,du$ is
+\[
+F_{\mathrm{lo}}(v)=(1+\theta v)^{-2},\qquad
+\theta=\frac a{2x+a}\le\frac13.
+\]
+On $|z|\le2$, $|1+\theta z|\ge1-2\theta\ge1/3$, so the kernel is analytic on a neighborhood of this disk and has boundary modulus at most $9$. For real $v\in[-1,1]$,
+\[
+F_{\mathrm{lo}}(v)\ge(1+\theta)^{-2}\ge\frac9{16}.
+\]
+Equation \eqref{eq:gaussian-relative}, applied to the affine image of the measure $u^{-s}\,du$, therefore gives the low-tail relative error $64\,4^{-r}$.
+
+On a middle panel $[L,2L]$, substitute $\tau=L(3+v)/2$. The positive prefactor is
+\[
+c_s\frac L2\left(\frac{3L}{2}\right)^{-s}
+\left(x+\frac{3L}{2}\right)^{-2},
+\]
+and the remaining kernel is
+\[
+F_{\mathrm{mid}}(v)=(1+v/3)^{-s}(1+\theta v)^{-2},
+\quad\theta=\frac L{2x+3L}\le\frac13.
+\]
+The branch positive on the real interval is analytic on $|z|\le2$, because $\operatorname{Re}(1+z/3)\ge1/3$. On its boundary,
+\[
+|F_{\mathrm{mid}}(z)|\le3^s3^2\le27,
+\]
+whereas on the real interval,
+\[
+F_{\mathrm{mid}}(v)\ge(4/3)^{-s-2}\ge\frac{27}{64}.
+\]
+Equation \eqref{eq:gaussian-relative} gives relative error at most $256\,4^{-r}$ on every middle panel.
+
+For the high tail, the substitution $\tau=C/u$ gives
+\[
+c_s\int_C^\infty\frac{\tau^{-s}}{(x+\tau)^2}\,d\tau
+=c_sC^{1-s}\int_0^1\frac{u^s}{(C+xu)^2}\,du.
+\]
+The Gaussian rule in \eqref{eq:high-poles} is for $u^{s-1}\,du$. Its derivative integrand therefore contains an additional factor $u$. With $v=2u-1$, the kernel, apart from $(C+x/2)^{-2}$, is
+\[
+\ell(v)F_{\mathrm{hi}}(v),\quad
+\ell(v)=\frac{1+v}{2},\quad
+F_{\mathrm{hi}}(v)=(1+\theta v)^{-2},
+\]
+where $\theta=x/(2C+x)\le1/3$, since $x\le b\le C$. The same bounds $M=9$ and $m=9/16$ hold. Equation \eqref{eq:gaussian-linear-relative} gives the high-tail relative error $128\,4^{-r}$. This rule is precisely the high-tail contribution to $D_p$, because
+\[
+\frac{\omega_i^{\mathrm{hi}}}{(x+\tau_i^{\mathrm{hi}})^2}
+=c_sC^{1-s}B_i\frac{v_i}{(C+xv_i)^2}.
+\]
+
+Let $I_\nu(x)>0$ be the exact derivative contribution of a panel, and let $\widetilde I_\nu(x)$ be its quadrature. Each preceding bound is at most $256\,4^{-r}I_\nu(x)$. Thus
+\begin{align*}
+|D_p(x)-D(x)|
+&\le\sum_\nu|\widetilde I_\nu(x)-I_\nu(x)|\\
+&\le256\,4^{-r}\sum_\nu I_\nu(x)
+=256\,4^{-r}D(x).
+\end{align*}
+Positivity prevents a factor proportional to the number of panels from appearing.
+\end{proof}
+
+\begin{theorem}[Dimension-free relative marginal approximation]
+\label{thm:dimension-free-marginal}
+Let $M\succ0$ and $b_e\ne0$, and suppose that
+\[
+\operatorname{spec}(M+t b_eb_e^\top)\subseteq[a,b]
+\quad\text{for every }t\in[0,1].
+\]
+Let $0<s<1$ and $0<\epsilon\le1/2$. Construct \eqref{eq:rational} with $r=\lceil\log_4(256/\epsilon)\rceil$. All weights and poles are positive, and
+\[
+p=\bigl(\lceil\log_2(b/a)\rceil+2\bigr)r
+=O\bigl((1+\log(b/a))\log(1/\epsilon)\bigr).
+\]
+The rational marginal is
+\begin{equation}
+\widetilde\Delta_s(e;M)
+=-\sum_{j=1}^p\omega_j
+\frac{b_e^\top(M+\tau_jI)^{-2}b_e}
+{1+b_e^\top(M+\tau_jI)^{-1}b_e}.
+\label{eq:multi-pole-marginal}
+\end{equation}
+For $\Delta_s(e;M)=\Tr((M+b_eb_e^\top)^{-s})-\Tr(M^{-s})$, it satisfies
+\begin{equation}
+|\widetilde\Delta_s(e;M)-\Delta_s(e;M)|
+\le\epsilon|\Delta_s(e;M)|.
+\label{eq:dimension-free-marginal}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Equations \eqref{eq:low-poles}--\eqref{eq:high-poles} give positive weights and poles, numbering $(K+2)r$, which proves the pole-count assertion.
+
+Write $R_j=(M+\tau_jI)^{-1}$. Its positive definiteness implies $1+b_e^\top R_jb_e>0$. The Sherman--Morrison identity gives
+\[
+(M+\tau_jI+b_eb_e^\top)^{-1}
+=R_j-\frac{R_jb_eb_e^\top R_j}{1+b_e^\top R_jb_e}.
+\]
+Taking traces and using their cyclic invariance yields
+\[
+\Tr\bigl((M+\tau_jI+b_eb_e^\top)^{-1}-R_j\bigr)
+=-\frac{b_e^\top R_j^2b_e}{1+b_e^\top R_jb_e}.
+\]
+Multiplication by $\omega_j$ and summation proves \eqref{eq:multi-pole-marginal}; it is exactly the trace difference of $r_p$.
+
+Set $M_t=M+t b_eb_e^\top$. Differentiating the resolvent gives
+\[
+\frac{d}{dt}(M_t+\tau I)^{-1}
+=-(M_t+\tau I)^{-1}b_eb_e^\top(M_t+\tau I)^{-1}.
+\]
+The absolute value of its trace is at most $\|b_e\|^2/(a+\tau)^2$. Since $\int_0^\infty\tau^{-s}/(a+\tau)^2\,d\tau$ is finite, differentiation under the trace Stieltjes integral is justified. Consequently,
+\begin{align*}
+\frac{d}{dt}\Tr(M_t^{-s})
+&=-c_s\int_0^\infty\tau^{-s}
+b_e^\top(M_t+\tau I)^{-2}b_e\,d\tau\\
+&=-b_e^\top D(M_t)b_e.
+\end{align*}
+The last equality follows by applying \eqref{eq:derivative-integral} to each eigenvalue of $M_t$. Differentiating the finite rational sum similarly gives
+\[
+\frac{d}{dt}\Tr(r_p(M_t))=-b_e^\top D_p(M_t)b_e.
+\]
+The fundamental theorem of calculus now yields
+\[
+-\Delta_s(e;M)=\int_0^1b_e^\top D(M_t)b_e\,dt,
+\]
+and
+\[
+-\widetilde\Delta_s(e;M)=\int_0^1b_e^\top D_p(M_t)b_e\,dt.
+\]
+
+Lemma~\ref{lem:derivative-quadrature} and the chosen $r$ imply
+\[
+(1-\epsilon)D(x)\le D_p(x)\le(1+\epsilon)D(x)
+\quad(x\in[a,b]).
+\]
+Diagonalize $M_t=V_t\Lambda_tV_t^\top$. Both $D(M_t)$ and $D_p(M_t)$ use this same eigenbasis, and every eigenvalue belongs to $[a,b]$. Applying the scalar inequalities to each diagonal entry therefore proves
+\[
+(1-\epsilon)D(M_t)\preceq D_p(M_t)
+\preceq(1+\epsilon)D(M_t).
+\]
+Taking quadratic forms with $b_e$ and integrating gives
+\[
+(1-\epsilon)(-\Delta_s(e;M))
+\le-\widetilde\Delta_s(e;M)
+\le(1+\epsilon)(-\Delta_s(e;M)).
+\]
+Since $D(M_t)=sM_t^{-s-1}\succ0$ and $b_e\ne0$, the quantity $-\Delta_s(e;M)$ is positive. Rearranging proves \eqref{eq:dimension-free-marginal}.
+\end{proof}
+
+For unit candidate edges, $\|b_e\|^2=2$. Every edge-addition path ending in a set of at most $2k$ edges is therefore covered by
+\[
+a=\sigma,\qquad b=\Lambda=\sigma+2d_{\max,0}+4k,\qquad
+\kappa_*=\Lambda/\sigma.
+\]
+The estimate follows from $\|L_0\|\le2d_{\max,0}$ and $\|\sum_{e\in S}b_eb_e^\top\|\le2|S|$. The marginal guarantee compares positive quadratic-form integrals along the update path; it does not subtract two separately approximated $n$-dimensional traces.
+
+For algebraic re-ranking, set $u_j=(M+\tau_jI)^{-1}b_e$.
+Symmetry gives $b_e^\top(M+\tau_jI)^{-2}b_e=u_j^\top u_j$.
+Thus the positive rational marginal is
+\[
+G_p(e\mid S)=-\widetilde\Delta_s(e;M_S)
+=\sum_{j=1}^p\omega_j\frac{\|u_j\|_2^2}{1+b_e^\top u_j}.
+\]
+It requires no random projection once these solves are available.
+Its remaining difference from the true fractional marginal is the quadrature error in Theorem~\ref{thm:dimension-free-marginal}.
+
+
+\subsection{The Log-Trace Reference Objective}
+
+\begin{proposition}[Strict monotonicity and submodularity of log-trace]
+\label{prop:logdet-submodularity}
+Write $g_{\log}(e\mid S)=f_{\log}(S\cup\{e\})-f_{\log}(S)$. The normalized log-trace gain $f_{\log}(S)=\log\det M(S)-\log\det M(\varnothing)$
+is strictly increasing under every nonzero edge addition and is submodular.
+For two candidates, strict diminishing returns holds exactly when their inverse-matrix cross term is nonzero.
+\end{proposition}
+\begin{proof}
+Fix $S$ and an unselected edge $e$, and write $R=M(S)^{-1}$.
+The matrix determinant lemma gives
+\[
+g_{\log}(e\mid S)=\log(1+b_e^\top Rb_e)>0,
+\]
+because $R$ is positive definite and $b_e\ne0$.
+For $S\subseteq T$, let $A=M(S)$ and $H=M(T)-M(S)\succeq0$.
+Writing $C=A^{-1/2}HA^{-1/2}\succeq0$ gives
+\[
+M(T)^{-1}=A^{-1/2}(I+C)^{-1}A^{-1/2}\preceq A^{-1},
+\]
+since every eigenvalue of $(I+C)^{-1}$ is at most one.
+Thus $b_e^\top M(T)^{-1}b_e\le b_e^\top M(S)^{-1}b_e$;
+applying the increasing function $x\mapsto\log(1+x)$ proves diminishing returns.
+
+More explicitly, for distinct unselected edges $e,a$, put
+$d_e=b_e^\top Rb_e$, $d_a=b_a^\top Rb_a$, and $c=b_e^\top Rb_a$.
+Sherman--Morrison gives
+\[
+\begin{aligned}
+&g_{\log}(e\mid S\cup\{a\})-g_{\log}(e\mid S)\\
+&\qquad=\log\left(1-\frac{c^2}{(1+d_e)(1+d_a)}\right)\le0.
+\end{aligned}
+\]
+The logarithm is well-defined because Cauchy--Schwarz in the $R$-inner product yields
+$c^2\le d_ed_a<(1+d_e)(1+d_a)$.
+The inequality is strict exactly when $c\ne0$.
+
+For a connected equality example, take the unweighted four-cycle
+$E_0=\{12,23,34,14\}$ and its two missing diagonals $e=13$ and $a=24$.
+Their incidence vectors are orthogonal eigenvectors of $L_0$, both with eigenvalue $2$.
+Hence $Rb_a=b_a/(\sigma+2)$ and $b_e^\top Rb_a=0$.
+The preceding equality shows that adding one diagonal does not change the log-trace marginal of the other.
+\end{proof}
+
+% Part A: budget-restricted structural parameters and end-to-end guarantees.
+% Requires amsmath, amssymb, amsthm and theorem/lemma environments.
+
+\subsection{Submodularity Ratio and Budget-Restricted Curvature}
+Write
+\[
+\begin{aligned}
+ g_s(e\mid S)&=f_s(S\cup\{e\})-f_s(S),\\
+ g_s(T\mid S)&=f_s(S\cup T)-f_s(S).
+\end{aligned}
+\]
+For a budget $k\geq1$, define the restricted submodularity ratio by
+\begin{equation}
+ \gamma_k=
+ \inf_{\substack{S\cap T=\varnothing,\ |S|\leq k-1\\
+                  1\leq |T|\leq k}}
+ \frac{\sum_{e\in T}g_s(e\mid S)}{g_s(T\mid S)}.
+ \label{eq:restricted-gamma}
+\end{equation}
+The restricted generalized curvature is
+\begin{equation}
+ \alpha_{2k}=1-
+ \inf_{\substack{A\subseteq B,\ e\notin B\\ |B|+1\leq2k}}
+ \frac{g_s(e\mid B)}{g_s(e\mid A)}.
+ \label{eq:restricted-alpha}
+\end{equation}
+All sets in these definitions are subsets of $\mathcal C$.
+The strict positivity in Lemma~\ref{lem:spectral-sensitivity} makes every displayed ratio
+well-defined.  Including singleton $T$ and $A=B$ shows that
+$\gamma_k\leq1$ and $\alpha_{2k}\geq0$.
+The $2k$ restriction covers the union of a greedy solution and an optimal budget-$k$ set.
+
+\begin{theorem}[Submodularity ratio and curvature]
+\label{thm:ratio-curvature}
+Let $0<s<1$, $\sigma>0$, and let each candidate be a unit-weight
+undirected edge, so that $\|b_e\|_2^2=2$.
+Let $d_{\max,0}$ denote the maximum weighted degree of $L_0$, and put
+\begin{equation}
+ \Lambda=\sigma+2d_{\max,0}+4k.
+ \label{eq:union-spectral-bound}
+\end{equation}
+Then $f_s$ is normalized and strictly increasing, and
+\begin{align}
+ \gamma_k&\geq\gamma_0
+ :=\frac{\sigma}{2s}
+       \left[1-\left(\frac{\sigma}{\sigma+2}\right)^s\right]>0,
+ \label{eq:gamma-zero}\\
+ \alpha_{2k}&\leq\alpha_0
+ :=1-\left(\frac{\sigma}{\Lambda}\right)^{s+1}<1.
+ \label{eq:alpha-zero}
+\end{align}
+In fact, the bound in \eqref{eq:gamma-zero} holds without a cardinality
+restriction on $S$ or $T$.
+\end{theorem}
+
+\begin{proof}
+Set $c_s=\sin(\pi s)/\pi>0$.  Fix an SPD matrix $A\succeq\sigma I$
+and a nonzero unit-edge vector $b$.  For $\tau>0$, write
+$R_\tau=(A+\tau I)^{-1}$,
+$d_\tau=b^\top R_\tau b$, and
+$h_\tau=b^\top R_\tau^2b$.
+The Stieltjes representation and the Sherman--Morrison identity give
+\begin{equation}
+ \Tr(A^{-s})-\Tr((A+bb^\top)^{-s})
+ =c_s\int_0^\infty\tau^{-s}
+                 \frac{h_\tau}{1+d_\tau}\,d\tau.
+ \label{eq:ratio-sm-integral}
+\end{equation}
+Every integrand is strictly positive.  The integral is finite because
+it is $O(\tau^{-s})$ at zero and $O(\tau^{-s-2})$ at infinity.
+Consequently every candidate has a strictly positive marginal, and
+$f_s(\varnothing)=0$ proves normalization and strict monotonicity.
+
+Differentiating the scalar Stieltjes identity under the integral gives
+\[
+ sx^{-s-1}=c_s\int_0^\infty
+                       \frac{\tau^{-s}}{(x+\tau)^2}\,d\tau.
+\]
+This differentiation is justified locally uniformly for $x>0$ by an
+integrable bound of the form $C\tau^{-s}$ on $(0,1)$ and
+$C\tau^{-s-2}$ on $(1,\infty)$.
+Applying the resulting identity in an eigenbasis of $A$ yields
+\begin{equation}
+ D(A,b):=s b^\top A^{-s-1}b
+       =c_s\int_0^\infty\tau^{-s}h_\tau\,d\tau.
+ \label{eq:initial-directional-gain}
+\end{equation}
+Since $d_\tau\leq\|b\|_2^2/(\sigma+\tau)=2/(\sigma+\tau)$,
+\begin{equation}
+ \Tr(A^{-s})-\Tr((A+bb^\top)^{-s})
+ \geq c_s\int_0^\infty\tau^{-s}h_\tau
+                       \frac{\sigma+\tau}{\sigma+\tau+2}\,d\tau.
+ \label{eq:marginal-lower-weight}
+\end{equation}
+Let $\mu_i\geq\sigma$ be the eigenvalues of $A$, with orthonormal
+eigenvectors $v_i$, and let $z_i=(v_i^\top b)^2\geq0$.
+Then $h_\tau=\sum_i z_i/(\mu_i+\tau)^2$.
+For $\mu\geq\sigma$, define
+\[
+ I(\mu)=\int_0^\infty
+  \frac{\tau^{-s}}{(\mu+\tau)^2}
+  \frac{\sigma+\tau}{\sigma+\tau+2}\,d\tau.
+\]
+The substitution $\tau=\mu u$ gives
+\begin{align}
+ I(\mu)
+ &=\mu^{-s-1}\int_0^\infty
+   \frac{u^{-s}}{(1+u)^2}
+   \frac{\sigma+\mu u}{\sigma+\mu u+2}\,du\notag\\
+ &\geq\left(\frac{\mu}{\sigma}\right)^{-s-1}I(\sigma).
+ \label{eq:scaled-kernel-comparison}
+\end{align}
+Indeed, $y/(y+2)$ is increasing for $y>0$, and $\mu\geq\sigma$.
+At the endpoint $\mu=\sigma$, partial fractions and the Stieltjes
+identity imply
+\begin{align*}
+ c_s I(\sigma)
+ &=c_s\int_0^\infty
+   \frac{\tau^{-s}}{(\sigma+\tau)(\sigma+\tau+2)}\,d\tau\\
+ &=\frac12\left[\sigma^{-s}-(\sigma+2)^{-s}\right]
+ =\gamma_0s\sigma^{-s-1}.
+\end{align*}
+Substituting this equality into \eqref{eq:scaled-kernel-comparison}
+and then into \eqref{eq:marginal-lower-weight} proves
+\begin{equation}
+ \Tr(A^{-s})-\Tr((A+bb^\top)^{-s})
+ \geq\gamma_0s\sum_i z_i\mu_i^{-s-1}
+ =\gamma_0D(A,b).
+ \label{eq:single-versus-derivative}
+\end{equation}
+
+To compare this single-edge inequality with a joint gain, let
+$H=\sum_{e\in T}b_eb_e^\top\succeq0$ and
+$K_\tau=R_\tau^{1/2}HR_\tau^{1/2}\succeq0$.
+Since $x/(1+x)\leq x$ for $x\geq0$, the spectral theorem gives
+\[
+ 0\preceq I-(I+K_\tau)^{-1}\preceq K_\tau.
+\]
+Congruence with $R_\tau^{1/2}$ therefore gives
+\begin{align*}
+ R_\tau-(A+H+\tau I)^{-1}
+ &=R_\tau^{1/2}[I-(I+K_\tau)^{-1}]R_\tau^{1/2}\\
+ &\preceq R_\tau H R_\tau.
+\end{align*}
+Taking traces, integrating with positive weight $c_s\tau^{-s}$,
+and using \eqref{eq:initial-directional-gain} yields
+\begin{equation}
+ \Tr(A^{-s})-\Tr((A+H)^{-s})
+ \leq\sum_{e\in T}D(A,b_e).
+ \label{eq:joint-versus-derivative}
+\end{equation}
+Apply \eqref{eq:single-versus-derivative} to each $e\in T$ at
+$A=M(S)$ and sum.  Combining the result with
+\eqref{eq:joint-versus-derivative} proves
+$\sum_{e\in T}g_s(e\mid S)\geq\gamma_0g_s(T\mid S)$.
+No cardinality restriction was used in this argument.
+The identity
+\[
+ \gamma_0=\int_0^1
+              \left(\frac{\sigma}{\sigma+2t}\right)^{s+1}dt
+\]
+also shows directly that $0<\gamma_0<1$.
+
+It remains to prove the curvature bound.  For every vector $x$,
+\begin{align*}
+ x^\top L_0x
+ &=\sum_{\{u,v\}\in E_0}w_{uv}(x_u-x_v)^2\\
+ &\leq2\sum_v d_{v,0}x_v^2
+ \leq2d_{\max,0}\|x\|_2^2.
+\end{align*}
+Each added edge has operator norm
+$\|b_eb_e^\top\|_2=2$.  Thus every matrix formed from at most $2k$
+added unit edges, including any partially added last edge, has all
+eigenvalues in $[\sigma,\Lambda]$.
+The resolvent derivative
+$\frac{d}{dt}(A+tbb^\top+\tau I)^{-1}
+=-(A+tbb^\top+\tau I)^{-1}bb^\top
+  (A+tbb^\top+\tau I)^{-1}$,
+the same integrable bounds as above, and cyclicity of the trace give
+\begin{equation}
+ g_s(e\mid S)=s\int_0^1
+ b_e^\top(M(S)+t b_eb_e^\top)^{-s-1}b_e\,dt.
+ \label{eq:curvature-path}
+\end{equation}
+The spectral theorem, applied separately at each $t$, implies
+\[
+ \Lambda^{-s-1}I\preceq
+ (M(S)+t b_eb_e^\top)^{-s-1}
+ \preceq\sigma^{-s-1}I.
+\]
+Hence whenever $|S|+1\leq2k$,
+\[
+ 2s\Lambda^{-s-1}\leq g_s(e\mid S)
+                         \leq2s\sigma^{-s-1}.
+\]
+For every pair $A\subseteq B$ appearing in
+\eqref{eq:restricted-alpha}, these bounds give
+\[
+ \frac{g_s(e\mid B)}{g_s(e\mid A)}
+ \geq\left(\frac{\sigma}{\Lambda}\right)^{s+1}.
+\]
+Taking the infimum proves \eqref{eq:alpha-zero}.
+The comparison applies scalar spectral bounds separately to each path matrix.
+\end{proof}
+
+\subsection{A Complete Approximate-Greedy Guarantee}
+
+The following proof gives the error-sensitive form of the ratio--curvature guarantee~\cite{bian2017} using only the restricted parameters above.
+
+\begin{lemma}[Approximate greedy selection]
+\label{lem:approximate-greedy}
+Let $f_s$ be normalized and monotone, with the ratios in \eqref{eq:restricted-gamma}--\eqref{eq:restricted-alpha} well-defined. Suppose that
+$\gamma_k\geq\gamma>0$ and $\alpha_{2k}\leq\alpha\leq1$ under
+\eqref{eq:restricted-gamma}--\eqref{eq:restricted-alpha}.
+Let $S_0=\varnothing$ and $S_i=S_{i-1}\cup\{e_i\}$, where
+\begin{equation}
+ g_s(e_i\mid S_{i-1})\geq
+ \beta\max_{e\in\mathcal C\setminus S_{i-1}}g_s(e\mid S_{i-1}),
+ \qquad 0<\beta\leq1.
+ \label{eq:beta-greedy-condition}
+\end{equation}
+For an optimal set $O$ of cardinality at most $k$, put
+$\theta=\beta\gamma$ and
+\begin{equation}
+ H_k(\alpha,\theta)
+ :=\frac{\theta}{k}\sum_{h=0}^{k-1}
+       \left(1-\frac{\alpha\theta}{k}\right)^h.
+ \label{eq:finite-greedy-bound}
+\end{equation}
+Then $f_s(S_k)\geq H_k(\alpha,\theta)f_s(O)$.
+For $\alpha>0$,
+\[
+ H_k(\alpha,\theta)
+ =\frac{1-(1-\alpha\theta/k)^k}{\alpha}
+ \geq\frac{1-e^{-\alpha\theta}}{\alpha};
+\]
+for $\alpha=0$, $H_k(0,\theta)=\theta$.
+\end{lemma}
+
+\begin{proof}
+If $f_s(O)=0$ the claim is immediate; otherwise extend $O$ to
+size $k$ by monotonicity. Write
+$\rho_i=g_s(e_i\mid S_{i-1})$ and $w_t=|S_t\cap O|$.
+Adding $S_t\setminus O$ to $O$ in greedy order and applying
+curvature gives
+\[
+f_s(O\cup S_t)-f_s(O)
+\ge(1-\alpha)\sum_{i\le t:e_i\notin O}\rho_i.
+\]
+The ratio inequality and $\beta$-greedy selection give
+\[
+f_s(O\cup S_t)-f_s(S_t)
+\le \frac{k-w_t}{\beta\gamma}\rho_{t+1}.
+\]
+Only unions of at most $2k$ edges occur. Setting
+$x_i=\rho_i/f_s(O)$ and $\theta=\beta\gamma$ yields
+\[
+1\le\alpha\sum_{i\le t:e_i\notin O}x_i
++\sum_{i\le t:e_i\in O}x_i
++\frac{k-w_t}{\theta}x_{t+1}.
+\]
+
+For completeness, solve the resulting scalar relaxation.
+At state $(m,R,z)$, $m\le R$ selections remain and
+$x\ge\theta z/R$ is required. An outside selection reduces
+$z$ by $\alpha x$ and leaves $R$ unchanged; an inside
+selection reduces $z$ by $x$ and $R$ by one. Positive
+parts are taken after each reduction. Write the minimum cost as
+$zC_{m,R}$, with $C_{0,R}=0$.
+We have $0\le C_{m,R}\le1$, since choosing an inside
+increment $x=z$ extinguishes the residual.
+Hence $x+C_{\rm next}[z-cx]_+$ is nondecreasing in $x$
+for $c\in\{\alpha,1\}$, and
+\[
+\begin{split}
+C_{m,R}=\frac{\theta}{R}+\min\Bigl\{&
+(1-\alpha\theta/R)C_{m-1,R},\\
+&(1-\theta/R)C_{m-1,R-1}\Bigr\}.
+\end{split}
+\]
+Induction gives, for $1\le m\le R$,
+$C_{m,R}=(\theta/R)\sum_{h=0}^{m-1}(1-a/R)^h$,
+where $a=\alpha\theta\in[0,1]$.
+Indeed, the outside branch gives this expression, while the
+inside branch is no smaller because, for $h\le m-2\le R-2$,
+\[
+\frac{R-\theta}{R-1}(1-a/(R-1))^h
+\ge(1-a/R)^{h+1}.
+\]
+For $a=0$ or $R=2$ this is immediate. Otherwise
+$J(u)=(1-a/u)^{u-1}$ is nonincreasing, since
+\[
+\begin{aligned}
+(\log J)'(u)
+&=\log(1-a/u)+\frac{a(u-1)}{u(u-a)}\\
+&\le\log(1-a/u)+a/u\le0.
+\end{aligned}
+\]
+The ratio $(1-a/R)^{h+1}/(1-a/(R-1))^h$ increases
+with $h$ and is at most $J(R)/J(R-1)\le1$.
+This proves the induction. The initial state $(k,k,1)$ gives
+$\sum_i x_i\ge C_{k,k}=H_k(\alpha,\theta)$.
+Summing the geometric series and using
+$(1-\alpha\theta/k)^k\le e^{-\alpha\theta}$ proves the
+claim, including its continuous limit at $\alpha=0$.
+\end{proof}
+
+\subsection{Numerical Errors and Algebraic Re-ranking}
+
+Lanczos matrix-function approximation admits finite-precision
+stability and a posteriori error analyses~\cite{musco2018,chen2022}.
+For our marginal oracle, the following residual certificate
+separates linear-solve error from the quadrature error in
+Theorem~\ref{thm:dimension-free-marginal}.
+
+\begin{lemma}[Residual certification of algebraic reranking scores]
+\label{lem:residual-score}
+Fix a state $S$, a candidate $e$, and positive quadrature weights
+$\omega_j$.  Set $A_j=M(S)+\tau_jI$ and
+$u_j=A_j^{-1}b_e$.  Assume
+$a_jI\preceq A_j\preceq b_jI$, where one may take
+$a_j=\sigma+\tau_j$ and $b_j=\Lambda+\tau_j$.
+For some $0<\rho<1$, suppose the computed vectors satisfy
+\begin{equation}
+ \|A_j\widetilde u_j-b_e\|_2
+ \leq\rho\frac{a_j}{b_j}\|b_e\|_2
+ \qquad(j=1,\ldots,p).
+ \label{eq:score-residual-target}
+\end{equation}
+Define the exact rational and computed scores by
+\[
+\begin{aligned}
+ G_p(e\mid S)&=\sum_{j=1}^p\omega_j
+          \frac{\|u_j\|_2^2}{1+b_e^\top u_j},\\
+ \check G(e\mid S)&=\sum_{j=1}^p\omega_j
+          \frac{\|\widetilde u_j\|_2^2}{1+b_e^\top\widetilde u_j}.
+\end{aligned}
+\]
+Then every computed denominator is positive and
+\begin{equation}
+ \frac{(1-\rho)^2}{1+\rho}G_p(e\mid S)
+ \leq\check G(e\mid S)
+ \leq\frac{(1+\rho)^2}{1-\rho}G_p(e\mid S).
+ \label{eq:residual-score-interval}
+\end{equation}
+In particular, if $0<\varepsilon_r\leq1/2$ and
+$\rho\leq\varepsilon_r/4$, then
+$(1-\varepsilon_r)G_p\leq\check G\leq(1+\varepsilon_r)G_p$.
+\end{lemma}
+
+\begin{proof}
+Write $r_j=A_j\widetilde u_j-b_e$ and
+$v_j=\widetilde u_j-u_j=A_j^{-1}r_j$.
+The assumed residual bound gives
+\[
+ \|v_j\|_2\leq a_j^{-1}\|r_j\|_2
+              \leq\rho\frac{\|b_e\|_2}{b_j}.
+\]
+Also, $\|b_e\|_2=\|A_ju_j\|_2\leq b_j\|u_j\|_2$ and
+$d_j:=b_e^\top u_j\geq\|b_e\|_2^2/b_j>0$.
+Consequently
+\[
+ \|v_j\|_2\leq\rho\|u_j\|_2,
+ \qquad
+ |b_e^\top v_j|\leq\|b_e\|_2\|v_j\|_2\leq\rho d_j.
+\]
+The triangle and reverse triangle inequalities imply
+\[
+ (1-\rho)^2\|u_j\|_2^2\leq\|\widetilde u_j\|_2^2
+                              \leq(1+\rho)^2\|u_j\|_2^2.
+\]
+For the denominator,
+\begin{align*}
+ 1+b_e^\top\widetilde u_j
+ &\geq1+(1-\rho)d_j\geq(1-\rho)(1+d_j)>0,\\
+ 1+b_e^\top\widetilde u_j
+ &\leq1+(1+\rho)d_j\leq(1+\rho)(1+d_j).
+\end{align*}
+Combining these inequalities proves
+\eqref{eq:residual-score-interval} for each summand; positivity of
+the weights preserves the bounds after summation.
+Finally, $\rho\leq\varepsilon_r/4\leq1/8$ implies
+\[
+ \frac{(1+\rho)^2}{1-\rho}-1
+ =\frac{3\rho+\rho^2}{1-\rho}\leq4\rho\leq\varepsilon_r,
+\]
+where $\rho\leq1/5$ suffices for the middle inequality, and
+\[
+ 1-\frac{(1-\rho)^2}{1+\rho}
+ =\frac{3\rho-\rho^2}{1+\rho}\leq3\rho\leq\varepsilon_r.
+\]
+These inequalities prove the last assertion.
+\end{proof}
+
+\begin{theorem}[End-to-end guarantee with certified errors]
+\label{thm:end-to-end-greedy}
+Let $G_p$ be the positive multi-pole marginal, and suppose quadrature
+satisfies, uniformly over all states of size less than $k$ and their
+remaining candidates,
+\begin{equation}
+ (1-\varepsilon_Q)g_s(e\mid S)\leq G_p(e\mid S)
+                         \leq(1+\varepsilon_Q)g_s(e\mid S).
+ \label{eq:end-to-end-quadrature}
+\end{equation}
+Suppose that on an event $\mathcal E$, the coarse scores satisfy
+\begin{equation}
+ (1-\varepsilon_c)G_p(e\mid S)\leq\widehat G(e\mid S)
+                         \leq(1+\varepsilon_c)G_p(e\mid S)
+ \label{eq:end-to-end-coarse}
+\end{equation}
+for all candidates at every state actually visited.
+At each round, let the shortlist contain a global maximizer of
+$\widehat G$, and select from it a maximizer of a reranking score
+satisfying
+\begin{equation}
+ (1-\varepsilon_r)G_p(e\mid S)\leq\check G(e\mid S)
+                         \leq(1+\varepsilon_r)G_p(e\mid S).
+ \label{eq:end-to-end-rerank}
+\end{equation}
+Assume $0\leq\varepsilon_Q,\varepsilon_c,\varepsilon_r<1$, and put
+\[
+ \beta=
+ \frac{1-\varepsilon_Q}{1+\varepsilon_Q}
+ \frac{1-\varepsilon_c}{1+\varepsilon_c}
+ \frac{1-\varepsilon_r}{1+\varepsilon_r}.
+\]
+Then, on $\mathcal E$, the resulting set satisfies
+\begin{equation}
+ f_s(S_k)\geq H_k(\alpha_0,\beta\gamma_0)f_s(O)
+ \geq\frac{1-e^{-\alpha_0\beta\gamma_0}}{\alpha_0}f_s(O),
+ \label{eq:end-to-end-guarantee}
+\end{equation}
+where $O$ is optimal under the budget $k$ and $\gamma_0,\alpha_0$
+are given in \eqref{eq:gamma-zero}--\eqref{eq:alpha-zero}.
+If $\Pr(\mathcal E)\geq1-\delta$, the same guarantee holds with
+probability at least $1-\delta$.
+\end{theorem}
+
+\begin{proof}
+Work on $\mathcal E$ and fix a visited state $S$.
+Let $c$ be a global maximizer of $\widehat G(\cdot\mid S)$ contained
+in the shortlist, let $a$ be the reranking winner, and let $e$ be
+any remaining candidate.  Suppress $S$ in the following display.
+Successive applications of the three error bounds and the two
+maximization rules give
+\begin{align*}
+ g_s(a)
+ &\geq\frac{G_p(a)}{1+\varepsilon_Q}\\
+ &\geq\frac{\check G(a)}{(1+\varepsilon_Q)(1+\varepsilon_r)}\\
+ &\geq\frac{\check G(c)}{(1+\varepsilon_Q)(1+\varepsilon_r)}\\
+ &\geq\frac{(1-\varepsilon_r)G_p(c)}
+                {(1+\varepsilon_Q)(1+\varepsilon_r)}\\
+ &\geq\frac{(1-\varepsilon_r)\widehat G(c)}
+                {(1+\varepsilon_Q)(1+\varepsilon_r)(1+\varepsilon_c)}\\
+ &\geq\frac{(1-\varepsilon_r)\widehat G(e)}
+                {(1+\varepsilon_Q)(1+\varepsilon_r)(1+\varepsilon_c)}\\
+ &\geq\frac{(1-\varepsilon_r)(1-\varepsilon_c)G_p(e)}
+                {(1+\varepsilon_Q)(1+\varepsilon_r)(1+\varepsilon_c)}\\
+ &\geq\beta g_s(e).
+\end{align*}
+Thus the selected edge satisfies
+\eqref{eq:beta-greedy-condition} at every round.
+Theorem~\ref{thm:ratio-curvature} supplies the inequalities required
+by Lemma~\ref{lem:approximate-greedy} with
+$\gamma=\gamma_0$ and $\alpha=\alpha_0$.
+Applying that lemma proves \eqref{eq:end-to-end-guarantee}.
+The event implication immediately gives the probability statement.
+\end{proof}
+
+The factor $\beta$ separates quadrature, maintained-proxy, and algebraic-score errors. Lemma~\ref{lem:residual-score} calibrates solve tolerances; the next two corollaries calibrate fixed projections. For exact true-marginal greedy, $\beta=1$ and the factor becomes $(1-e^{-\alpha_0\gamma_0})/\alpha_0$.
+
+\begin{remark}[Round-dependent recovery]
+\label{rem:average-beta}
+The factor $\beta$ is a worst case over rounds. If round $t$
+satisfies~\eqref{eq:beta-greedy-condition} with its own $\beta_t$,
+the standard ratio argument gives
+$f_s(O)-f_s(S_{t+1})\le(1-\gamma_k\beta_t/k)(f_s(O)-f_s(S_t))$, hence
+$f_s(S_k)\ge\bigl(1-e^{-\gamma_k\bar\beta}\bigr)f_s(O)$ with
+$\bar\beta=k^{-1}\sum_t\beta_t$. Section~\ref{sec:exp-params} reports
+both the minimum and the mean of the measured per-round recovery.
+\end{remark}
+
+\subsection{A Uniform Certificate for Fixed Sketches}
+The following simultaneous guarantee makes the quantifiers needed for adaptive selection explicit; the underlying sketch constructions are standard~\cite{spielman2011,skorski2021}.
+
+\begin{corollary}[Uniform fixed-sketch guarantee]
+\label{cor:uniform-sketch}
+Fix $0<\eta<1/3$, $0<\delta<1$, $1\le k\le N=|\mathcal C|$, and positive quadrature weights and shifts $(\omega_j,\tau_j)_{j=1}^p$.
+Let $m_0$ be the number of base edges, and let $C_S\in\mathbb R^{(m_0+N)\times n}$ contain their weighted incidence rows $\sqrt{w_a}b_a^\top$, followed by the incidence row of each selected unit-weight candidate and a zero row for each unselected candidate.
+Thus $C_S^\top C_S=M(S)-\sigma I$.
+For $|S|<k$, $e\in\mathcal C\setminus S$, and $j\in[p]$, define
+\[
+R_{S,j}=(M(S)+\tau_jI)^{-1},\quad v_{S,e,j}=R_{S,j}b_e,
+\]
+\[
+\begin{aligned}
+h_{S,e,j}&=\|v_{S,e,j}\|^2,\\
+t_{S,e,j}&=\|C_Sv_{S,e,j}\|^2,\\
+d_{S,e,j}&=b_e^\top R_{S,j}b_e.
+\end{aligned}
+\]
+Draw $Z\in\mathbb R^{n\times q}$ and $U\in\mathbb R^{(m_0+N)\times q}$ independently, with independent $N(0,1/q)$ entries, and keep them fixed.
+Put $\widehat h_{S,e,j}=\|Z^\top v_{S,e,j}\|^2$ and $\widehat t_{S,e,j}=\|U^\top C_Sv_{S,e,j}\|^2$.
+The exact rational gain and its sketch are
+\begin{align}
+G_p(e\mid S)&=\sum_{j=1}^p\omega_j\frac{h_{S,e,j}}{1+d_{S,e,j}},\\
+\widehat G(e\mid S)&=\sum_{j=1}^p\omega_j
+\frac{\widehat h_{S,e,j}}
+{1+\widehat t_{S,e,j}+(\sigma+\tau_j)\widehat h_{S,e,j}}.
+\label{eq:uniform-sketch-score}
+\end{align}
+Let $\mathcal N_k=\sum_{\ell=0}^{k-1}\binom N\ell$.
+If
+\begin{equation}
+q\ge\frac8{\eta^2}\log\frac{4pN\mathcal N_k}{\delta},
+\label{eq:uniform-sketch-dimension}
+\end{equation}
+then, with probability at least $1-\delta$, simultaneously for every such $(S,e)$,
+\begin{equation}
+\frac{1-\eta}{1+\eta}G_p(e\mid S)
+\le\widehat G(e\mid S)
+\le\frac{1+\eta}{1-\eta}G_p(e\mid S).
+\label{eq:uniform-sketch-comparison}
+\end{equation}
+In particular, this event covers every trajectory of at most $k$ adaptive selections using these same sketches.
+It also implies a conventional relative-error bound with
+$\varepsilon_c=2\eta/(1-\eta)<1$.
+\end{corollary}
+\begin{proof}
+For a fixed nonzero vector $x$ and Gaussian $W$,
+$q\|W^\top x\|^2/\|x\|^2$ is $\chi_q^2$.
+The moment generating function
+$\mathbb E e^{t\chi_q^2}=(1-2t)^{-q/2}$ and Chernoff
+optimization give, for $0<a<1$,
+\[
+\Pr\{\chi_q^2\ge q(1+a)\}
+\le e^{-q(a-\log(1+a))/2},
+\]
+and
+$\Pr\{\chi_q^2\le q(1-a)\}
+\le e^{-q(-a-\log(1-a))/2}$.
+Since
+$a-\log(1+a)\ge a^2/4$ and
+$-a-\log(1-a)\ge a^2/2$, the squared-norm failure
+probability is at most $2e^{-qa^2/8}$. Zero vectors are
+preserved exactly.
+
+There are at most $2pN\mathcal N_k$ deterministic norm queries over
+all $(S,e,j)$ before the sketches are drawn. A union bound
+with $a=\eta$ gives failure probability at most
+$4pN\mathcal N_ke^{-q\eta^2/8}\le\delta$.
+On the complementary event, both $h$ and $t$ are preserved
+within $1\pm\eta$.
+Moreover,
+\[
+t+(\sigma+\tau_j)h
+=v^\top(M_S+\tau_jI)v=v^\top b_e=d.
+\]
+Thus
+$(1-\eta)(1+d)\le1+\widehat t+
+(\sigma+\tau_j)\widehat h\le(1+\eta)(1+d)$.
+Dividing the numerator bounds by these positive denominator
+bounds and summing with $\omega_j>0$ proves
+\eqref{eq:uniform-sketch-comparison}.
+Its upper factor is $1+\varepsilon_c$ and its lower factor
+is at least $1-\varepsilon_c$.
+The event covers all admissible sets simultaneously, hence also
+every adaptive trajectory.
+\end{proof}
+
+For $N\ge2$,
+\[
+\mathcal N_k\le\sum_{\ell=0}^{k-1}N^\ell
+=\frac{N^k-1}{N-1}\le N^k;
+\]
+for $N=1$, necessarily $k=1$ and $\mathcal N_k=1$.
+Thus a sufficient Gaussian dimension is
+$O(\eta^{-2}[(k+1)\log N+\log(p/\delta)])$.
+This bound accounts for all possible adaptive trajectories, not only a trajectory fixed independently of the sketches.
+
+\begin{corollary}[Global orthogonal-column variant]
+\label{cor:uniform-haar}
+In Corollary~\ref{cor:uniform-sketch}, replace the two Gaussian sketches by independent scaled Haar frames $\sqrt{d_i/q}\,Q_i$, where the two $Q_i$ have $q$ orthonormal columns in dimensions $d_1=n$ and $d_2=m_0+N$, respectively.
+For $q\le\min(d_1,d_2)$, the same conclusion holds under the sufficient condition
+\begin{equation}
+q\ge\frac{72}{\eta^2}\log\frac{8pN\mathcal N_k}{\delta}.
+\label{eq:uniform-haar-dimension}
+\end{equation}
+The node sketch may instead be a Haar frame in $\mathbf1^\perp$, scaled by $\sqrt{(n-1)/q}$, with $d_1=n-1$.
+\end{corollary}
+\begin{proof}
+Rotational invariance gives, for a fixed nonzero $x\in\mathbb R^d$,
+\[
+\frac{\|\sqrt{d/q}\,Q^\top x\|^2}{\|x\|^2}
+\stackrel{\mathrm d}{=}\frac{A/q}{(A+B)/d},
+\]
+where $A\sim\chi_q^2$ and $B\sim\chi_{d-q}^2$ are
+independent. Apply the preceding chi-square bound to $A$
+and $A+B$ with tolerance $\eta/3$.
+When both normalized variables lie in $1\pm\eta/3$, their
+ratio lies in $1\pm\eta$, since
+$2\eta/(3-\eta)\le\eta$ and
+$2\eta/(3+\eta)\le\eta$.
+The fixed-vector failure probability is therefore at most
+$4e^{-q\eta^2/72}$ for $q\le d$.
+Union bounding the $2pN\mathcal N_k$ queries proves the stated
+dimension bound; the score comparison follows from the same
+positive-denominator argument.
+
+For centered node sketches,
+$\mathbf1^\top R_{S,j}b_e=
+\mathbf1^\top b_e/(\sigma+\tau_j)=0$.
+Every projected node vector therefore lies in
+$\mathbf1^\perp$, where the preceding argument applies with
+dimension $n-1$.
+\end{proof}
+
+Corollary~\ref{cor:uniform-haar} applies when its lower bound on $q$ is compatible with the ambient dimension; a full-dimensional isometry gives exact norm preservation. Numerical maintenance errors enter $\varepsilon_c$ through the residual bounds in Section~\ref{sec:maintenance}.
+
+\section{The \POLAR{} Framework}
+\label{sec:framework}
+We maintain a fixed two-bank sketch and select a proxy shortlist before algebraic re-ranking. The candidate support $V_{\mathcal C}$ is fixed throughout.
+
+\subsection{Shared Krylov Iterations and Full-Norm Tracking}
+\label{sec:shifted-cg}
+Sort the poles so that $\tau_1\le\cdots\le\tau_p$. For a common right-hand side $w$, use $A=M+\tau_1I$ as the seed matrix and $\theta_j=\tau_j-\tau_1$. Write $u_i,r_i,d_i$ for its CG iterate, residual, and search direction, initialized by $u_0=0$, $r_0=d_0=w$. Every shift starts from $u_0^{(j)}=0$ and $d_0^{(j)}=w$; $w=0$ is returned immediately. One seed iteration is
+\begin{align}
+ a_i&=\frac{r_i^\top r_i}{d_i^\top A d_i},&
+ r_{i+1}&=r_i-a_i A d_i,\\
+ \beta_i&=\frac{\|r_{i+1}\|^2}{\|r_i\|^2},&
+ d_{i+1}&=r_{i+1}+\beta_i d_i.
+\label{eq:seed-cg}
+\end{align}
+Only $A d_i=M d_i+\tau_1d_i$ requires a graph SpMV. Set $\zeta_{-1}^{(j)}=\zeta_0^{(j)}=1$ and $\chi_0=0$, with $\chi_i=a_i\beta_{i-1}/a_{i-1}$ for $i>0$. The coupled scalar recurrences~\cite{jegerlehner1996} are
+\begin{align}
+ \zeta_{i+1}^{(j)}
+ &=\frac{\zeta_i^{(j)}}{1+a_i\theta_j+
+       \chi_i(1-\zeta_i^{(j)}/\zeta_{i-1}^{(j)})},\\
+ a_i^{(j)}&=a_i\frac{\zeta_{i+1}^{(j)}}{\zeta_i^{(j)}},\\
+ \beta_i^{(j)}&=\beta_i\left(\frac{\zeta_{i+1}^{(j)}}{\zeta_i^{(j)}}\right)^2,\\
+ u_{i+1}^{(j)}&=u_i^{(j)}+a_i^{(j)}d_i^{(j)},\\
+ d_{i+1}^{(j)}&=\zeta_{i+1}^{(j)}r_{i+1}+\beta_i^{(j)}d_i^{(j)}.
+\label{eq:shifted-cg}
+\end{align}
+Here and below, Krylov identities are stated in exact arithmetic. A pole freezes once $|\zeta_{i+1}^{(j)}|\|r_{i+1}\|\le\delta_j$; subsequent iterations omit its vector and norm updates.
+
+\begin{proposition}[Pole sharing and three-scalar norm tracking]
+\label{prop:cg-tracker}
+All shifted systems share the seed SpMVs. Their solution and search vectors need only be stored on $V_{\mathcal C}$. The full solution norms are recovered by three scalars per pole,
+$h_i^{(j)}=\|u_i^{(j)}\|^2$,
+$c_i^{(j)}=u_i^{(j)\top}d_i^{(j)}$, and
+$v_i^{(j)}=\|d_i^{(j)}\|^2$, initialized by $h_0^{(j)}=c_0^{(j)}=0$ and $v_0^{(j)}=\|w\|^2$. Suppressing $j$, their updates are
+\begin{align}
+ h_{i+1}&=h_i+2a_i^{(j)}c_i+(a_i^{(j)})^2v_i,\\
+ c_{i+1}&=\beta_i^{(j)}(c_i+a_i^{(j)}v_i),\\
+ v_{i+1}&=(\zeta_{i+1}^{(j)})^2\|r_{i+1}\|^2
+                         +(\beta_i^{(j)})^2v_i.
+\label{eq:three-scalar-tracker}
+\end{align}
+\end{proposition}
+\begin{proof}
+Binomial expansion gives
+$\mathcal K_i(A+\theta_jI,w)\subseteq\mathcal K_i(A,w)$; applying it to $A=(A+\theta_jI)-\theta_jI$ gives the reverse inclusion. Let $P_i$ be the seed residual polynomial, so $r_i=P_i(A)w$ and $P_i(0)=1$. Its roots are positive Ritz values. Therefore $P_i(-\theta_j)>0$, and
+$Q_i(z)=P_i(z-\theta_j)/P_i(-\theta_j)$ has $Q_i(0)=1$. The residual $Q_i(A+\theta_jI)w$ is a multiple of $r_i$, hence orthogonal to the shared $\mathcal K_i$. Moreover, $(1-Q_i(z))/z$ is a polynomial of degree at most $i-1$, so the corresponding iterate belongs to that space. Uniqueness of the SPD Galerkin iterate proves
+$r_i^{(j)}=\zeta_i^{(j)}r_i$ with $\zeta_i^{(j)}=1/P_i(-\theta_j)$.
+
+Eliminating $d_i$ from seed CG gives
+$P_{i+1}(z)=(1+\chi_i-a_i z)P_i(z)-\chi_iP_{i-1}(z)$.
+Evaluation at $-\theta_j$ gives the stated $\zeta$ recurrence. Matching the coefficient of $z$ in the shifted recurrence gives $a_i^{(j)}$; taking the ratio of successive residual norms gives $\beta_i^{(j)}$. Thus \eqref{eq:shifted-cg} produces the shifted CG iterates without another SpMV. Since $P_i(-\theta_j)=\prod_\ell(1+\theta_j/\lambda_\ell^{(i)})\ge1$, all shifted residuals meet a common tolerance when the seed does.
+
+CG orthogonality gives
+$r_{i+1}^{(j)}\perp\mathcal K_{i+1}$, which contains both $u_{i+1}^{(j)}$ and $d_i^{(j)}$. Expanding the squared norm of $u_i^{(j)}+a_i^{(j)}d_i^{(j)}$ proves the first tracker identity. Taking its inner product with $r_{i+1}^{(j)}+\beta_i^{(j)}d_i^{(j)}$ proves the second. Expanding the squared norm of this search direction and using $r_{i+1}^{(j)\top}d_i^{(j)}=0$ proves the third. These scalar recurrences use the full seed residual norm, while every shifted vector recurrence may be restricted to $V_{\mathcal C}$ coordinatewise.
+\end{proof}
+
+With at most $t$ iterations and $m$ current graph edges, one right-hand side therefore costs $t$ SpMVs and $O(t(m+n+pn_{\mathcal C}))$ arithmetic before freezing savings. The iteration count depends on the seed condition number, at most $(\Lambda+\tau_1)/(\sigma+\tau_1)$. Norm-tracking and recursive-residual roundoff contribute to the numerical score-error budget in Theorem~\ref{thm:end-to-end-greedy}.
+
+\subsection{Cross-Round Endpoint Maintenance}
+\label{sec:maintenance}
+Let $W_S=C_S^\top U$ for the universal incidence sketch from Corollary~\ref{cor:uniform-sketch}, and maintain
+$X_j=(M_S+\tau_jI)^{-1}Z$ and
+$Y_j=(M_S+\tau_jI)^{-1}W_S$ only on $V_{\mathcal C}$.
+The coarse score uses
+$h_{ej}=\|X_j^\top b_e\|^2$ and $t_{ej}=\|Y_j^\top b_e\|^2$.
+When edge $b=b_{e_r}$ is added, let $g_r\in\mathbb R^q$ be its row in $U$, so $W_{S+e_r}=W_S+bg_r^\top$. Put
+$u_j=(M_S+\tau_jI)^{-1}b$,
+$D_j=1+b^\top u_j$,
+$\xi_j=X_j^\top b$, and
+$\eta_j=g_r-Y_j^\top b$.
+
+\begin{theorem}[Slice maintenance and residual accumulation]
+\label{thm:maintenance}
+The exact updates are
+\begin{equation}
+ X'_j=X_j-u_j\xi_j^\top/D_j,\qquad
+ Y'_j=Y_j+u_j\eta_j^\top/D_j.
+\label{eq:xy-update}
+\end{equation}
+They can be evaluated solely on candidate endpoint rows in $O(pn_{\mathcal C}q)$ time.
+For one pole, set $A_r=M_r+\tau I$, $a=\sigma+\tau$, and use approximate $\widetilde u_r$ with
+$f_r=A_{r-1}\widetilde u_r-b_r$ and $\|f_r\|_2\le\delta$.
+Define $F_r=A_r\widetilde X_r-Z$ and update using
+$\widetilde D_r=1+b_r^\top\widetilde u_r$.
+If $k\delta\le\sqrt a$, then
+\begin{equation}
+ \|\widetilde X_k-X_k\|_F
+ \le\frac{e}{a}\|F_0\|_F
+       +\frac{ek\delta}{a^{3/2}}\|Z\|_F.
+\label{eq:maintenance-error}
+\end{equation}
+In particular, exact initialization gives the second term alone.
+\end{theorem}
+\begin{proof}
+Sherman--Morrison gives
+$(A+bb^\top)^{-1}=A^{-1}-u u^\top/(1+b^\top u)$.
+Multiplication by $Z$ proves the first identity. Multiplication by $W_S+bg_r^\top$, using $u^\top W_S=b^\top Y$ and
+$1-(b^\top u)/(1+b^\top u)=1/(1+b^\top u)$, proves the second. Restricting these outer products to $V_{\mathcal C}$ is exact because every queried $b_e$ is supported there.
+
+For approximate solves,
+$A_r\widetilde u_r=b_r\widetilde D_r+f_r$.
+Multiplying the computed $X$ update by $A_r$ therefore gives the exact residual recursion
+\begin{equation}
+ F_r=F_{r-1}-f_r
+       \frac{b_r^\top\widetilde X_{r-1}}{\widetilde D_r}.
+\label{eq:maintenance-residual}
+\end{equation}
+Let $d=b_r^\top A_{r-1}^{-1}b_r>0$ and $h=\delta/\sqrt a\le1$. Since $A_{r-1}\succeq aI$,
+\[
+ |b_r^\top A_{r-1}^{-1}f_r|\le h\sqrt d,
+ \qquad
+ \|b_r^\top A_{r-1}^{-1}\|_2\le\sqrt{d/a}.
+\]
+Thus $\widetilde D_r\ge1+d-h\sqrt d\ge3/4>0$, and the inequality $1+d\ge2\sqrt d$ yields
+\[
+ \frac{\|b_r^\top A_{r-1}^{-1}\|_2}{\widetilde D_r}
+ \le\frac1{\sqrt a(2-h)}\le\frac1{\sqrt a}.
+\]
+Because $\widetilde X_{r-1}=A_{r-1}^{-1}(Z+F_{r-1})$, \eqref{eq:maintenance-residual} implies
+\[
+ \|F_r\|_F\le(1+h)\|F_{r-1}\|_F+h\|Z\|_F.
+\]
+Induction gives
+$\|F_k\|_F\le(1+h)^k\|F_0\|_F+[(1+h)^k-1]\|Z\|_F$.
+Finally,
+$\widetilde X_k-X_k=A_k^{-1}F_k$,
+$\|A_k^{-1}\|\le1/a$, and $kh\le1$ implies
+$(1+h)^k\le e$ and $(1+h)^k-1\le ekh$.
+These inequalities prove \eqref{eq:maintenance-error}.
+\end{proof}
+
+If a rank-one update incurs an additional matrix perturbation $E_r$, its residual recurrence gains $A_rE_r$; the same induction adds
+$(e/a)\sum_{r=1}^k\|A_rE_r\|_F$ to \eqref{eq:maintenance-error}.
+
+The changing right-hand side of $Y$ is handled explicitly. With
+$F_r^Y=A_r\widetilde Y_r-W_r$ and
+$\widetilde\eta_r=g_r-\widetilde Y_{r-1}^\top b_r$, multiplication of its update gives
+\[
+ F_r^Y=F_{r-1}^Y+f_r\widetilde\eta_r^\top/\widetilde D_r.
+\]
+The inequalities in the preceding proof yield
+\[
+\|F_r^Y\|_F\le(1+h)\|F_{r-1}^Y\|_F
++h\|W_{r-1}\|_F+\tfrac43\delta\|g_r\|_2.
+\]
+Writing $W_{\max}=\max_{r<k}\|W_r\|_F$ and summing gives
+\begin{equation}
+\|\widetilde Y_k-Y_k\|_F
+\le\frac e a\left(\|F_0^Y\|_F+
+khW_{\max}+\frac{4\delta}{3}\sum_{r=1}^k\|g_r\|_2\right).
+\label{eq:y-maintenance-error}
+\end{equation}
+\subsection{Shared-Direction Algebraic Norm Caching}
+\label{sec:norm-cache}
+Using the old slices and the vectors $\xi_j,\eta_j$ from \eqref{eq:xy-update}, we update all candidate norms by sharing two matrix--vector products.
+
+\begin{proposition}[Shared-direction norm cache]
+\label{prop:norm-cache}
+For every remaining candidate $e$, let
+\[
+h_{ej}=\|X_j^\top b_e\|^2,\qquad
+t_{ej}=\|Y_j^\top b_e\|^2,\qquad
+c_{ej}=b_e^\top u_j/D_j.
+\]
+Compute the two shared directions
+$w_j^X=X_j\xi_j$ and $w_j^Y=Y_j\eta_j$.
+Then the exact cache updates are
+\begin{align}
+h_{ej}^+&=h_{ej}-2c_{ej}b_e^\top w_j^X
+                    +c_{ej}^2\|\xi_j\|^2,\label{eq:cache-h}\\
+t_{ej}^+&=t_{ej}+2c_{ej}b_e^\top w_j^Y
+                    +c_{ej}^2\|\eta_j\|^2.\label{eq:cache-t}
+\end{align}
+Maintaining both sketch slices and all candidate caches costs
+$O(pn_{\mathcal C}q+pN)$ per selected edge.
+\end{proposition}
+\begin{proof}
+By \eqref{eq:xy-update}, with $x=X_j^\top b_e$ and $y=Y_j^\top b_e$,
+\[
+x^+=x-c_{ej}\xi_j,\qquad y^+=y+c_{ej}\eta_j.
+\]
+Expanding these two squared norms gives
+\eqref{eq:cache-h}--\eqref{eq:cache-t}, since
+$\langle x,\xi_j\rangle=b_e^\top X_j\xi_j$ and
+$\langle y,\eta_j\rangle=b_e^\top Y_j\eta_j$.
+Only rows in $V_{\mathcal C}$ are needed for $w_j^X,w_j^Y$,
+and each remaining quadratic-form coefficient is an endpoint
+difference. Computing the shared directions and applying the
+slice updates therefore costs $O(pn_{\mathcal C}q)$;
+all candidate scalar recurrences cost $O(pN)$.
+\end{proof}
+
+The cached oracle reads $O(p)$ scalars per candidate after initialization. The lazy oracle materializes $q$-dimensional norms only for competitive candidates. Our GPU implementation uses the cache backend.
+
+\subsection{Lossless Non-Submodular Lazy Selection}
+\label{sec:lazy}
+
+Put $a_j=\sigma+\tau_j$. The fixed-sketch marginal is
+\begin{equation}
+\widehat G(e\mid S)
+=\sum_j\omega_j\frac{h_{ej}}{1+t_{ej}+a_jh_{ej}}.
+\label{eq:proxy-cache-score}
+\end{equation}
+We analyze lossless selection for this fixed proxy in exact arithmetic; residual and roundoff intervals provide enclosing keys in finite precision. All comparisons
+use the same lexicographic tie rule, with the maximum of an empty
+heap defined as $-\infty$.
+
+At update $\ell$, let
+\[
+\chi_{\ell j}
+=\frac{\max_{v\in V_{\mathcal C}}u_{\ell j}(v)
+       -\min_{v\in V_{\mathcal C}}u_{\ell j}(v)}
+      {D_{\ell j}}.
+\]
+Thus $|c_{e\ell j}|\le\chi_{\ell j}$ for every candidate.
+Define global prefixes
+\[
+A_j(r)=\sum_{\ell=1}^r\chi_{\ell j}\|\xi_{\ell j}\|,\qquad
+B_j(r)=\sum_{\ell=1}^r\chi_{\ell j}\|\eta_{\ell j}\|.
+\]
+If edge $e$ was last evaluated at round $r_0$, store
+$\nu_{ej}=\sqrt{h_{ej}(r_0)}$ and
+$\ell_{ej}=\sqrt{t_{ej}(r_0)}$, together with its prefix anchors.
+At round $r$, set
+\begin{align}
+H_{ej}(r)&=\nu_{ej}+A_j(r)-A_j(r_0),\label{eq:triangle-upper}\\
+L_{ej}(r)&=\bigl[\ell_{ej}-B_j(r)+B_j(r_0)\bigr]_+,\label{eq:triangle-lower}\\
+U_e(r)&=\sum_j\omega_j
+\frac{H_{ej}(r)^2}
+{1+L_{ej}(r)^2+a_jH_{ej}(r)^2}.
+\label{eq:lazy-envelope}
+\end{align}
+A tighter backend replaces each global increment
+$\chi_{\ell j}$ by $|c_{e\ell j}|$, maintaining the corresponding
+per-edge sums in $O(pN)$ time per round.
+
+\begin{theorem}[Envelope and common-affine heap]
+\label{thm:lazy-envelope}
+The bound $U_e(r)\ge\widehat G(e\mid S_r)$ holds for every
+remaining candidate. It costs $O(p)$ to query.
+Define
+\begin{equation}
+\begin{aligned}
+D_\ell^{\rm heap}
+&=\sum_j\omega_j\chi_{\ell j}
+\left(\frac{\|\xi_{\ell j}\|}{\sqrt{a_j}}
+      +\frac{\|\eta_{\ell j}\|}{4a_j}\right),\\
+P(r)&=\sum_{\ell=1}^rD_\ell^{\rm heap}.
+\end{aligned}
+\label{eq:common-heap-prefix}
+\end{equation}
+A candidate evaluated at $r_0$ has the persistent key
+$K_e=\widehat G(e\mid S_{r_0})-P(r_0)$, whose current upper
+bound is $K_e+P(r)$.
+A max-heap ordered by $K_e$, with the refinements in
+Algorithm~\ref{alg:polar}, returns exactly the same proxy
+top-$B$ set as full reevaluation, under the same tie-breaking rule.
+\end{theorem}
+\begin{proof}
+Iterating~\eqref{eq:xy-update} gives
+\[
+\begin{aligned}
+x_e(r)&=x_e(r_0)-\sum_{\ell=r_0+1}^rc_{e\ell j}\xi_{\ell j},\\
+y_e(r)&=y_e(r_0)+\sum_{\ell=r_0+1}^rc_{e\ell j}\eta_{\ell j}.
+\end{aligned}
+\]
+The triangle and reverse triangle inequalities imply
+$\|x_e(r)\|\le H_{ej}(r)$ and
+$\|y_e(r)\|\ge L_{ej}(r)$.
+For $h,t\ge0$, the function $\phi(h,t)=h/(1+t+a_jh)$
+has derivatives
+$\partial_h\phi=(1+t)/(1+t+a_jh)^2>0$ and
+$\partial_t\phi=-h/(1+t+a_jh)^2\le0$.
+Substituting the norm bounds and summing with positive weights
+proves~\eqref{eq:lazy-envelope}. The global prefixes leave
+$O(p)$ arithmetic per queried edge.
+
+For the persistent heap, regard
+$\phi(x,y)=\|x\|^2/(1+\|y\|^2+a_j\|x\|^2)$.
+Let $z=\sqrt{a_j}\|x\|/\sqrt{1+\|y\|^2}$.
+Then
+\[
+\|\nabla_x\phi\|
+=\frac{2z}{\sqrt{a_j}\sqrt{1+\|y\|^2}(1+z^2)^2}
+\le\frac1{\sqrt{a_j}},
+\]
+where $2z\le1+z^2$ was used.
+Writing $v=a_j\|x\|^2$ and $b=1+\|y\|^2$, the inequality
+$v/(b+v)^2\le1/(4b)$ gives
+\[
+\|\nabla_y\phi\|
+\le\frac{\|y\|}{2a_j(1+\|y\|^2)}
+\le\frac1{4a_j}.
+\]
+Integrating these gradient bounds along the line segment joining
+the old and updated pair $(x,y)$ yields
+\[
+|\widehat G(e\mid S_\ell)-\widehat G(e\mid S_{\ell-1})|
+\le D_\ell^{\rm heap}.
+\]
+Summing over updates proves
+$\widehat G(e\mid S_r)\le K_e+P(r)$.
+The additive term is common to every edge, so heap order is
+unchanged when $P$ increases.
+
+An envelope refinement at round $r$ may replace $K_e$ by
+$\min\{K_e,U_e(r)-P(r)\}$; the key remains an upper bound
+both now and after future common-prefix increments.
+An exact proxy evaluation replaces it by
+$\widehat G(e\mid S_r)-P(r)$.
+When such a current-round entry is maximal in the heap, its
+actual proxy score is at least every remaining upper bound,
+and therefore at least every remaining score.
+Extracting $B$ current-round entries proves the top-$B$ assertion.
+Reinserting the unselected shortlist members before increasing
+$P$ preserves the same invariant for the next round.
+\end{proof}
+
+\subsection{Zero-Waste Algebraic Re-ranking and Cost}
+
+For each shortlisted edge, a single-right-hand-side multi-shift
+solve supplies $u_j=R_jb_e$ and its tracked squared norm.
+The score
+\[
+G_p(e\mid S)=\sum_j\omega_j\frac{\|u_j\|^2}{1+b_e^\top u_j}
+\]
+contains no projection variance.
+The champion's already computed slice is reused
+in~\eqref{eq:xy-update}.
+Thus initialization requires $2q$ multi-shift solves and each
+round requires at most $B$, giving at most $(2q+kB)t$ SpMVs.
+The shortlist contains the proxy maximizer, which is precisely
+the condition required by Theorem~\ref{thm:end-to-end-greedy}.
+The lazy backend and cache backend share this selection rule;
+the latter refines a heap entry by reading its scalar caches
+instead of computing $q$-dimensional candidate norms.
+
+\begin{algorithm}[t]
+\caption{\POLAR{} with cached or lazily materialized proxy norms}
+\label{alg:polar}
+\DontPrintSemicolon
+\KwIn{$M_0,\mathcal C,k,s,\sigma,q,B$; backend \textsf{cache} or \textsf{lazy}}
+\KwOut{Selected set $S_k$}
+\tcc{Initialization}
+Construct positive poles $(\omega_j,\tau_j)$ and fixed normalized sketches $Z,U$\;
+Extract $V_{\mathcal C}$ and candidate sketch rows $g_e$; set $S=\varnothing$, $M=M_0$\;
+Use $2q$ multi-shift solves to initialize slices $X_j=R_jZ$ and $Y_j=R_jC_0^\top U$\;
+Evaluate initial candidate norms and proxies; initialize anchors, heap keys $K_e=\widehat G(e\mid\varnothing)$, and stamps $r_e=0$\;
+Set all global prefixes $A_j,B_j,P$ to zero\;
+\For{$r=0,\ldots,k-1$}{
+  \tcc{Lossless proxy shortlist}
+  $B_r\leftarrow\min\{B,N-r\}$; $\mathcal B\leftarrow\varnothing$\;
+  \While{$|\mathcal B|<B_r$}{
+    $(K_e,e)\leftarrow\operatorname{PopMax}(\mathcal H)$\;
+    \eIf{$r_e=r$}{
+      $\mathcal B\leftarrow\mathcal B\cup\{e\}$\;
+    }{
+      Compute $U_e$ from~\eqref{eq:lazy-envelope}\;
+      \eIf{$U_e-P<\operatorname{MaxKey}(\mathcal H)$}{
+        Push $(\min\{K_e,U_e-P\},e)$\;
+      }{
+        Obtain current $h_{ej},t_{ej}$ from scalar caches
+        (\textsf{cache}) or slice norms (\textsf{lazy})\;
+        Refresh anchors and $r_e\leftarrow r$;
+        push $(\widehat G(e\mid S)-P,e)$\;
+      }
+    }
+  }
+  \tcc{Algebraic re-ranking with tracked full norms}
+  \ForEach{$e\in\mathcal B$}{
+    Run one multi-shift CG solve with early pole freezing and
+    the three-scalar norm tracker; obtain $u_{ej}$ and $\|u_{ej}\|^2$\;
+    Compute the algebraic score, with the residual certificate
+    of Lemma~\ref{lem:residual-score}\;
+    Keep the best-so-far score and slices; discard each losing contender\;
+  }
+  Let $a$ be the final champion, with computed slices $u_{aj}$\;
+  Reinsert $\mathcal B\setminus\{a\}$ using their current-round keys\;
+  \tcc{Champion reuse and shared-direction caching}
+  \If{$r+1<k$}{
+    Compute $\xi_j,\eta_j,D_j,\chi_{r+1,j}$ from the old slices\;
+    \If{backend is \textsf{cache}}{
+      Form $w_j^X,w_j^Y$ and update all candidate scalar norms
+      by~\eqref{eq:cache-h}--\eqref{eq:cache-t}\;
+    }
+    Apply the rank-one slice updates~\eqref{eq:xy-update}\;
+    Advance $A_j,B_j$ and the common prefix $P$
+    using~\eqref{eq:common-heap-prefix}\;
+  }
+  $S\leftarrow S\cup\{a\}$; update the sparse graph matrix
+  $M\leftarrow M+b_ab_a^\top$\;
+}
+\Return{$S$}
+\end{algorithm}
+
+\paragraph{Total cost}
+Let $H$ count heap operations and $E$ count proxy refinements over all rounds. With cached norms, the arithmetic cost is
+\begin{equation}
+\begin{split}
+O\bigl(&T_{\rm proj}+(2q+kB)t(m_0+k+n+pn_{\mathcal C})+pNq\\
+&+k(pn_{\mathcal C}q+pN)+Ep+H(p+\log N)\bigr).
+\end{split}
+\label{eq:total-complexity}
+\end{equation}
+The lazy oracle replaces $Ep$ by $Epq$ and can use global prefix envelopes without updating all candidate caches. Here $T_{\rm proj}=O((n+m_0+N)q)$ for independent Gaussian entries and $O((n+m_0+N)q^2)$ for the Gaussian--QR orthogonalized constructions. Storage for the direct two-bank implementation is
+$O((n+m_0+N)q+pn_{\mathcal C}q+pN)$.
+Unpreconditioned CG has
+$t=O(\sqrt{\kappa_*}\log(\kappa_*/\mathrm{tol}))$ for a relative residual target. Pole freezing reduces vector updates while preserving the shared seed iteration count.
+
+\section{Experimental Evaluation}
+\label{sec:experiments}
+We address four questions. How close is \POLAR{} to exhaustive
+search and to exact fractional greedy? How does its running time
+scale on networks with millions of vertices? Does the exponent $s$
+change the links that are recommended and the diffusion behavior
+they produce? How sensitive is \POLAR{} to its parameters?
+
+\subsection{Setup}
+\paragraph{Datasets}
+We use eighteen undirected real networks from
+KONECT~\cite{konect} and SNAP~\cite{snap}. Four small networks support exhaustive search:
+Zachary ($n=34$, $m=78$), Dolphins (62, 159), LesMis (77, 254), and
+Polbooks (105, 441). Five medium networks support exact greedy:
+Hamster (921, 4032), email-Eu-core (1005, 16\,064), ca-GrQc
+(5242, 14\,484), ca-HepPh (12\,008, 118\,489), and ca-CondMat
+(23\,133, 93\,439). Nine large networks appear in
+Table~\ref{tab:time}; the largest is com-LiveJournal with
+$4.0$ million vertices and $34.7$ million edges.
+Directions, duplicate edges, and self-loops are removed, and all
+vertices are retained; graphs need not be connected.
+
+\paragraph{Candidates and parameters}
+Unless stated otherwise, $\sigma=1$, $k=20$, and the candidate set
+contains $N=2000$ missing links drawn uniformly at random with a seed
+fixed per graph. A \emph{2-hop} pool instead samples missing
+friend-of-friend pairs by random two-step walks, the usual source of
+link recommendations. Small networks use $N=40$ uniform candidates.
+\POLAR{} uses $q=128$ block-orthogonal sketches, shortlist $B=16$,
+quadrature tolerance $\epsilon=10^{-2}$ (between $p=72$ and $p=152$ poles, growing with $\log\kappa_*$), and
+relative CG tolerance $10^{-7}$; the projection seed is 2026.
+
+\paragraph{Baselines}
+\emph{Exact} greedy maximizes the exact marginal of the target
+objective: candidates are screened with certified intervals from
+Theorem~\ref{thm:dimension-free-marginal} at $\epsilon=10^{-9}$,
+and every surviving contender is evaluated by a dense eigensolver.
+Proposition~\ref{prop:twins} below resolves the ties among
+structurally equivalent candidates that are frequent in 2-hop pools.
+\emph{Exact-ER} and \emph{Exact-Logdet} are exact greedy for
+$\Tr(M^{-1})$ and $\log\det M$; \emph{Sketched-ER} and
+\emph{Sketched-Logdet} run the \POLAR{} machinery with the
+corresponding single-pole marginal.
+\emph{SLQ} greedy estimates every candidate's trace change by
+stochastic Lanczos quadrature~\cite{ubaru2017} with 20 Rademacher
+probes and 40 Lanczos steps. \emph{Naive} recomputes both sketch banks in every
+round and selects the proxy maximizer.
+\emph{Degree} repeatedly adds the candidate with the smallest current
+endpoint-degree sum, and \emph{Random} averages ten seeded draws.
+Final gains are computed from eigenvalues when $n\le6000$ and
+otherwise by certified quadrature with $\epsilon=10^{-9}$ and
+CG tolerance $10^{-10}$.
+
+\begin{proposition}[Twin candidates]
+\label{prop:twins}
+Let $u,v$ be nonadjacent in the current graph $G_S$ and have the same
+weighted neighborhood. Then
+$g_s(\{u,v\}\mid S)=x^{-s}-(x+2)^{-s}$ with $x=(M_S)_{uu}$.
+\end{proposition}
+\begin{proof}
+Equal neighborhoods give $(L_0+L_S)b=d_ub$ for $b=\bm e_u-\bm e_v$,
+where $d_u$ is the weighted degree in $G_S=G_0+S$, so
+$b$ is an eigenvector of $M_S$ with eigenvalue $x=d_u+\sigma$.
+Adding $bb^\top$ moves this eigenvalue to $x+2$ and leaves the
+orthogonal complement unchanged.
+\end{proof}
+
+\paragraph{Implementation}
+\POLAR{}, Naive, SLQ, and the sketched baselines run on one NVIDIA RTX
+4090 with CuPy~14.2 and a warp-per-row CSR kernel for multi-vector
+SpMM. It uses the cache backend and obtains the proxy top-$B$ set by
+a dense sort on the GPU, which returns the same shortlist as the heap
+of Theorem~\ref{thm:lazy-envelope}. Exact greedy uses the GPU eigensolver for $n\le6000$ and
+multithreaded CPU LAPACK for ca-HepPh and ca-CondMat. Timers include
+initial sketch solves, maintenance, scoring, and re-ranking, and
+exclude graph loading and sketch generation. Table~\ref{tab:time}
+reports medians of three runs with rotated method order (two on
+web-Google and as-Skitter, one on LiveJournal). Naive runs three times
+on the five smallest networks and once elsewhere, with a one-hour cap
+checked between rounds. Code, data, and all raw results are available
+online~\cite{polar-repo}.
+
+\begin{table*}[!t]
+\centering
+\caption{Running time (seconds) and SpMV counts on large networks:
+$s=0.5$, $k=20$, $N=2000$, $q=128$, $p=72$--$152$.
+Speedups are relative to Naive. A truncated Naive run reports its
+elapsed time and the number of completed rounds; its speedup is a
+lower bound. In every run, \POLAR{} with $B=1$ selects the same
+twenty links as Naive.}
+\label{tab:time}
+\footnotesize
+\setlength{\tabcolsep}{4.2pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}lrrrrrrrrrr@{}}
+\toprule
+& & & \multicolumn{5}{c}{Time (s)} & \multicolumn{3}{c}{SpMVs ($\times10^3$)}\\
+\cmidrule(lr){4-8}\cmidrule(lr){9-11}
+Network & $n$ & $m$ & Naive & $B=1$ & Speedup & $B=16$ & Speedup & Naive & $B=1$ & $B=16$\\
+\midrule
+ca-CondMat & 23\,133 & 93\,439 & 29.7 & 3.3 & $8.9\times$ & 3.8 & $7.8\times$ & 524 & 27.7 & 53.1\\
+ca-HepPh & 12\,008 & 118\,489 & 43.7 & 4.2 & $10.4\times$ & 5.6 & $7.8\times$ & 840 & 43.8 & 77.5\\
+email-Enron & 36\,692 & 183\,831 & 90.6 & 8.1 & $11.2\times$ & 10.7 & $8.5\times$ & 1236 & 65.0 & 121\\
+com-Amazon & 334\,863 & 925\,872 & 197.1 & 12.1 & $16.3\times$ & 20.1 & $9.8\times$ & 622 & 33.0 & 62.1\\
+com-DBLP & 317\,080 & 1\,049\,866 & 193.7 & 12.2 & $15.9\times$ & 20.0 & $9.7\times$ & 647 & 34.5 & 66.6\\
+roadNet-PA & 1\,088\,092 & 1\,541\,898 & 139.6 & 8.0 & $17.4\times$ & 17.9 & $7.8\times$ & 131 & 7.0 & 13.6\\
+roadNet-CA & 1\,965\,206 & 2\,766\,607 & 268.7 & 15.1 & $17.8\times$ & 32.8 & $8.2\times$ & 136 & 7.2 & 13.8\\
+com-Youtube & 1\,134\,890 & 2\,987\,624 & $>$3687 (19) & 214.8 & $>17.2\times$ & 542.6 & $>6.8\times$ & $>$3356 & 187 & 357\\
+web-Google & 875\,713 & 4\,322\,051 & 2225.1 & 125.0 & $17.8\times$ & 303.0 & $7.3\times$ & 2776 & 147 & 278\\
+as-Skitter & 1\,696\,415 & 11\,095\,298 & $>$4077 (8) & 569.9 & $>7.2\times$ & 1389.5 & $>2.9\times$ & $>$2619 & 348 & 656\\
+com-LiveJournal & 3\,997\,962 & 34\,681\,189 & $>$2515 (3) & 908.8 & $>2.8\times$ & 1720.9 & $>1.5\times$ & $>$469 & 166 & 311\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Efficiency}
+Table~\ref{tab:time} shows that endpoint maintenance removes most
+linear-algebra work. Naive solves $2kq=5120$ right-hand sides, whereas
+\POLAR{} solves $2q+k=276$ with $B=1$ and $2q+kB=576$ with $B=16$.
+Whenever Naive completes, SpMVs fall by $18.7$--$19.2\times$ for
+$B=1$, close to the ratio $5120/276=18.6$ of right-hand sides.
+On the eight networks where Naive finishes, $B=1$ is
+$8.9$--$17.8\times$ faster and returns exactly Naive's selections.
+The elapsed-time speedup approaches the SpMV ratio as graphs grow,
+because sparse products then dominate candidate scoring. The shortlist with $B=16$ costs
+$1.2$--$2.5\times$ the time of $B=1$ and buys the quality reported below.
+Naive needs $194$, $510$, and $838$\,s per round on com-Youtube,
+as-Skitter, and com-LiveJournal, so a complete run would take
+$1.1$, $2.8$, and $4.7$ hours; \POLAR{} with $B=1$ finishes in
+$3.6$, $9.5$, and $15.1$ minutes, i.e., $18.1$, $17.9$, and
+$18.5\times$ faster than the projected Naive runs.
+The $2q$ initial solves account for most of the remaining work:
+on web-Google, one Naive round, which equals one initialization,
+uses $94\%$ of the SpMVs of the entire $B=1$ run.
+
+\subsection{Effectiveness}
+\paragraph{Comparison with the optimum}
+On the four small networks, we enumerate all $\binom{40}{k}$ sets
+for $k=1,\ldots,5$ and $s\in\{0.25,0.5\}$; the largest instance has
+$658\,008$ sets. In all forty instances, \POLAR{} and exact
+fractional greedy attain the exhaustive optimum up to a relative
+difference of $2\times10^{-11}$. Exact-ER attains at least $0.9431$
+of it, Degree at least $0.8026$, and Random $0.44$--$0.73$ on
+average. The non-submodularity of
+Example~\ref{ex:four-vertex} therefore does not prevent greedy
+selection from being optimal at these scales.
+
+\paragraph{Comparison with exact greedy}
+Table~\ref{tab:exact} normalizes each method by exact greedy for the
+same exponent. \POLAR{} attains $0.9920$--$1.0000$ on uniform pools
+and $0.9974$--$1.0000$ on 2-hop pools. SLQ greedy attains only
+$0.9327$--$0.9949$: it forms each marginal as a difference of two
+stochastic trace estimates with absolute errors, whereas \POLAR{}
+approximates the marginal itself with relative accuracy.
+In the same runs, which shared the GPU with other jobs, SLQ took
+$33$--$123$\,s against $2.5$--$3.4$\,s for \POLAR{}.
+Exact greedy takes up to $134$\,s on ca-GrQc and $1059$--$1096$\,s
+on ca-HepPh with CPU LAPACK, against $2.2$ and $5.6$\,s for \POLAR{}
+in isolated runs (Tables~\ref{tab:params} and~\ref{tab:time}); on
+Hamster and email-Eu-core, dense exact greedy needs only 1--2\,s and
+is the better choice.
+On ca-CondMat, where only $s=0.5$ and Exact-ER were run on the CPU
+($6471$ and $6575$\,s), the ratios are $0.9944$ for \POLAR{} and
+$0.9940$ for Exact-ER.
+
+With $\sigma=1$, the alternative exact objectives remain close to the
+fractional optimum, but no single one is uniformly close.
+On 2-hop pools, Exact-ER loses up to $3.3\%$, Exact-Logdet up to
+$5.1\%$, and Degree up to $17.4\%$ ($19.5\%$ on uniform pools). Their losses grow at the
+exponent farther from their own: Exact-ER is weakest at $s=0.25$,
+and Exact-Logdet at $s=0.75$. Conversely, exact ER or log-det greedy is slightly better than
+\POLAR{} on $f_s$ in 7 of the 13 uniform-pool cells, by at most
+$0.8\%$ (ca-GrQc), and in 2 of the 12 2-hop cells, by at most
+$0.03\%$. In each such cell \POLAR{} is also below exact fractional
+greedy, so the gap is sketch error, not an advantage of the other
+objective; at $s=0.5$ on ca-GrQc, $B=32$ closes it
+(Table~\ref{tab:params}). With $\sigma=1$,
+the objectives thus differ less in $f_s$ than in which diffusion
+horizon their links improve (Section~\ref{sec:exp-heat}).
+
+\begin{table*}[!t]
+\centering
+\caption{Gain relative to exact fractional greedy for the same
+exponent: $k=20$, $N=2000$, $\sigma=1$. Exact-ER and Exact-Logdet are
+exact greedy for other objectives, evaluated on $f_s$. Random is the
+mean of ten draws. On ca-GrQc, the leading 2-hop candidates are
+tied twin pairs (Proposition~\ref{prop:twins}); up to 77 candidates
+share the maximal marginal in a round, and all non-random methods
+attain the same gain.}
+\label{tab:exact}
+\footnotesize
+\setlength{\tabcolsep}{3.9pt}
+\renewcommand{\arraystretch}{1.06}
+\begin{tabular}{@{}lc rrrrrrr rrrr@{}}
+\toprule
+& & \multicolumn{7}{c}{Uniform pool} & \multicolumn{4}{c}{2-hop pool}\\
+\cmidrule(lr){3-9}\cmidrule(lr){10-13}
+Network & $s$ & \POLAR{} & SLQ & Exact-ER & Exact-Logdet & Sketched-ER & Degree & Random
+& \POLAR{} & Exact-ER & Exact-Logdet & Degree\\
+\midrule
+email-Eu-core & 0.25 & 0.9949 & 0.9630 & 0.9854 & 0.9942 & 0.9680 & 0.9207 & 0.245 & 0.9974 & 0.9669 & 0.9907 & 0.9174\\
+ & 0.5 & 0.9954 & 0.9693 & 0.9967 & 0.9870 & 0.9854 & 0.8731 & 0.213 & 0.9989 & 0.9850 & 0.9708 & 0.8724\\
+ & 0.75 & 0.9975 & 0.9949 & 1.0000 & 0.9753 & 0.9943 & 0.8213 & 0.189 & 0.9998 & 0.9973 & 0.9489 & 0.8264\\
+\midrule
+Hamster & 0.25 & 0.9964 & 0.9327 & 0.9965 & 1.0000 & 0.9965 & 0.8890 & 0.480 & 0.9998 & 0.9680 & 1.0000 & 0.9923\\
+ & 0.5 & 1.0000 & 0.9541 & 0.9981 & 1.0000 & 0.9981 & 0.8497 & 0.434 & 0.9997 & 0.9819 & 1.0000 & 0.9899\\
+ & 0.75 & 1.0000 & 0.9458 & 0.9997 & 0.9994 & 0.9997 & 0.8060 & 0.396 & 1.0000 & 0.9961 & 0.9977 & 0.9851\\
+\midrule
+ca-GrQc & 0.25 & 0.9920 & 0.9640 & 0.9944 & 1.0000 & 0.9914 & 0.8838 & 0.543 & 1.0000 & 1.0000 & 1.0000 & 1.0000\\
+ & 0.5 & 0.9952 & 0.9541 & 0.9970 & 1.0000 & 0.9944 & 0.8456 & 0.500 & 1.0000 & 1.0000 & 1.0000 & 1.0000\\
+ & 0.75 & 0.9981 & 0.9477 & 1.0000 & 0.9997 & 0.9981 & 0.8051 & 0.465 & 1.0000 & 1.0000 & 1.0000 & 1.0000\\
+\midrule
+ca-HepPh & 0.25 & 0.9942 & -- & 0.9905 & 0.9973 & 0.9874 & 0.9300 & 0.441 & 1.0000 & 0.9754 & 1.0000 & 0.9963\\
+ & 0.5 & 1.0000 & -- & 0.9954 & 0.9871 & 0.9919 & 0.8927 & 0.401 & 1.0000 & 0.9852 & 1.0000 & 0.9952\\
+ & 0.75 & 0.9997 & -- & 0.9985 & 0.9714 & 0.9948 & 0.8476 & 0.367 & 1.0000 & 0.9963 & 0.9985 & 0.9927\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\paragraph{Large networks}
+Exact greedy costs hours per objective on the seven large networks of
+Table~\ref{tab:large}, so each method is normalized by the best
+method for each target. The exponent-matched \POLAR{} run attains
+$0.9979$--$1.0000$ in sixteen of seventeen cases, while Degree attains
+$0.7677$--$0.9911$. The exception is com-Youtube, where Sketched-ER
+is $1.4\%$ better on $f_{0.5}$. Enlarging the shortlist to $B=64$ raises
+\POLAR{} to $1.0040$ of the Sketched-ER gain (1072\,s), and $q=256$
+raises it to $0.9948$ (753\,s). The gap is therefore a sketch
+ranking error at $q=128$: the best candidate lies outside the proxy
+top-16, not outside the objective's optimum.
+
+\begin{table}[!t]
+\centering
+\caption{Gain relative to the best method on each target for large
+networks. ``Other $s$'' is the best \POLAR{} run for a different
+exponent, evaluated on the same target.}
+\label{tab:large}
+\footnotesize
+\setlength{\tabcolsep}{2.6pt}
+\renewcommand{\arraystretch}{1.04}
+\begin{tabular}{@{}lc rrrrrr@{}}
+\toprule
+Network & $s$ & \POLAR{} & Other $s$ & Sk.-ER & Sk.-Logdet & Degree & Random\\
+\midrule
+email-Enron & 0.25 & 1.0000 & 0.9995 & 0.9935 & 0.9919 & 0.8706 & 0.570\\
+ & 0.5 & 1.0000 & 0.9997 & 0.9980 & 0.9862 & 0.8229 & 0.525\\
+ & 0.75 & 0.9988 & 0.9970 & 1.0000 & 0.9762 & 0.7677 & 0.485\\
+com-DBLP & 0.25 & 0.9990 & 1.0000 & 0.9819 & 0.9993 & 0.9911 & 0.555\\
+ & 0.5 & 1.0000 & 0.9997 & 0.9910 & 0.9946 & 0.9824 & 0.517\\
+ & 0.75 & 1.0000 & 0.9922 & 0.9959 & 0.9807 & 0.9641 & 0.483\\
+com-Amazon & 0.25 & 0.9979 & 0.9997 & 0.9821 & 1.0000 & 0.9798 & 0.512\\
+ & 0.5 & 1.0000 & 0.9986 & 0.9886 & 0.9978 & 0.9692 & 0.470\\
+ & 0.75 & 1.0000 & 0.9973 & 0.9946 & 0.9919 & 0.9536 & 0.438\\
+roadNet-PA & 0.25 & 0.9981 & 1.0000 & 0.9997 & 0.9987 & 0.9898 & 0.646\\
+ & 0.5 & 0.9987 & 1.0000 & 0.9995 & 0.9980 & 0.9857 & 0.613\\
+ & 0.75 & 1.0000 & 0.9983 & 0.9993 & 0.9970 & 0.9809 & 0.588\\
+roadNet-CA & 0.25 & 1.0000 & 1.0000 & 0.9756 & 1.0000 & 0.9885 & 0.650\\
+ & 0.5 & 1.0000 & 1.0000 & 0.9833 & 1.0000 & 0.9840 & 0.617\\
+ & 0.75 & 1.0000 & 0.9985 & 0.9934 & 0.9984 & 0.9773 & 0.591\\
+web-Google & 0.5 & 1.0000 & -- & 0.9874 & 0.9914 & 0.9724 & 0.448\\
+com-Youtube & 0.5 & 0.9858 & -- & 1.0000 & 0.9766 & 0.8728 & 0.658\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Controlled Multiscale Benchmark}
+On the real networks above, objectives with $\sigma=1$ attain
+similar $f_s$ while selecting different links: at $\sigma=1$, the
+Jaccard similarity between the exact $s=0.25$ and Exact-ER selections
+is $0.43$--$0.74$ on email-Eu-core, Hamster, and ca-GrQc. To isolate when the exponent matters, the graph in
+Fig.~\ref{fig:motivation}(b) contains two 390-vertex cores, each
+formed by three independently permuted Hamilton cycles with weight
+10, a weight-$0.5$ intercore bridge, and twenty weight-$0.3$ leaves
+attached to the first core. Five further vertices form a
+weight-$0.5$ cycle, each with its own weight-$0.5$ tie to that core.
+Thus $n=805$, $\sigma=10^{-2}$, and the shared pool contains 2995
+sampled intercore or leaf-to-core links plus the five missing cycle
+chords; $k=15$, and graph seeds 711--713 are fixed across methods.
+
+\begin{table*}[!t]
+\centering
+\caption{True fractional gains on the multiscale benchmark:
+$n=805$, $\sigma=10^{-2}$, $N=3000$, $k=15$.
+Gains are means $\pm$ sample standard deviations over graph seeds 711, 712, and 713.
+\POLAR{} uses global column-orthogonal sketches, $q=24$, $B=4$, and $p=20$.
+$\Delta_{\mathrm{ER}}$ compares mean gains with Exact-ER.
+C/L/D denotes intercore links / leaf repairs / local cycle chords.
+Counts are identical across seeds except Random, whose mean allocation is shown.}
+\label{tab:multiscale}
+\footnotesize
+\setlength{\tabcolsep}{5.1pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l r r c r r c@{}}
+\toprule
+& \multicolumn{3}{c}{$s=0.25$} & \multicolumn{3}{c}{$s=0.5$}\\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Method & True gain & $\Delta_{\mathrm{ER}}$ (\%) & C/L/D
+& True gain & $\Delta_{\mathrm{ER}}$ (\%) & C/L/D\\
+\midrule
+Random & $2.941226\pm 0.586256$ & $-28.36$ & $10/5/0$ & $9.257625\pm 1.170745$ & $-20.83$ & $10/5/0$\\
+Degree & $4.793361\pm 0.000284$ & $+16.75$ & $0/10/5$ & $10.398292\pm 0.000542$ & $-11.08$ & $0/10/5$\\
+Exact-ER ($s=1$) & $4.105538\pm 0.000227$ & $+0.00$ & $7/8/0$ & $11.694059\pm 0.000555$ & $+0.00$ & $7/8/0$\\
+Sketched-ER ($q=24$) & $5.094869\pm 0.000657$ & $+24.10$ & $4/11/0$ & $13.477414\pm 0.001683$ & $+15.25$ & $4/11/0$\\
+\textbf{\POLAR{}} & $\mathbf{6.078574\pm 0.000183}$ & $\mathbf{+48.06}$ & $\mathbf{0/15/0}$ & $\mathbf{14.239384\pm 0.000217}$ & $\mathbf{+21.77}$ & $\mathbf{1/14/0}$\\
+Exact fractional greedy & $6.081501\pm 0.000393$ & $+48.13$ & $0/15/0$ & $14.250901\pm 0.000144$ & $+21.86$ & $1/14/0$\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:multiscale} connects gains to link types. Exact-ER
+assigns seven of fifteen links to the intercore cut. \POLAR{}
+assigns all fifteen links to leaf repairs at $s=0.25$, and fourteen
+leaf repairs and one intercore link at $s=0.5$, matching exact
+fractional greedy. Each cycle vertex has weighted degree $1.5$, so
+any unselected cycle chord has endpoint-degree sum at most $5$,
+whereas leaf-to-core and intercore candidates have sums of at least
+$60.3$ and $120$. Degree therefore spends five links on the cycle,
+although the cycle already has five independent core attachments.
+At $s=0.25$ and $s=0.5$, \POLAR{} improves the mean gain over Degree
+by $26.81\%$ and $36.94\%$, over Exact-ER by $48.06\%$ and
+$21.77\%$, and over Sketched-ER by $19.31\%$ and $5.65\%$; it
+recovers $99.95\%$ and $99.92\%$ of exact fractional greedy.
+Without the five-vertex cycle ($n=800$ control, seed 711), Degree and \POLAR{} attain
+$6.077892$ and $6.078605$ at $s=0.25$, so the cycle is what
+separates local degree from fractional spectral value.
+
+\subsection{Diffusion Time Scales}
+\label{sec:exp-heat}
+The exponent has a direct diffusion interpretation. Let
+$\Delta H_S(t)=\Tr e^{-tL_0}-\Tr e^{-t(L_0+L_S)}\ge0$ be the
+reduction of the heat trace, i.e., of the total return probability
+of continuous-time random walks after time $t$.
+
+\begin{proposition}[Heat-trace representation]
+\label{prop:heat}
+For $0<s<1$,
+\begin{align}
+f_s(S)&=\frac1{\Gamma(s)}\int_0^\infty t^{s-1}e^{-\sigma t}
+\Delta H_S(t)\,dt,\label{eq:heat-mellin}\\
+f_{\log}(S)&=\int_0^\infty t^{-1}e^{-\sigma t}\Delta H_S(t)\,dt,
+\notag
+\end{align}
+and the same formula with $s=1$ gives the inverse-trace gain.
+As $t\to0$,
+$\Delta H_S(t)=2|S|t-\frac{t^2}{2}\Delta_S\Tr(L^2)+O(t^3)$,
+where adding $\{u,v\}$ increases $\Tr(L^2)$ by $2(d_u+d_v)+4$.
+\end{proposition}
+\begin{proof}
+Apply $\Gamma(s)x^{-s}=\int_0^\infty t^{s-1}e^{-tx}dt$ and
+$\log(y/x)=\int_0^\infty t^{-1}(e^{-tx}-e^{-ty})\,dt$ to the
+eigenvalues of $M_0$ and $M_S$, and use
+$\Tr e^{-tM}=e^{-\sigma t}\Tr e^{-tL}$. Weyl's inequality gives
+$\Delta H_S\ge0$. The expansion follows from
+$\Tr e^{-tL}=n-t\Tr L+\frac{t^2}{2}\Tr L^2+O(t^3)$,
+$\Tr L=\sum_vd_v$, and $\Tr L^2=\sum_vd_v^2+\sum_{u\ne v}w_{uv}^2$.
+\end{proof}
+
+The weight $t^{s-1}e^{-\sigma t}$ is proportional to a Gamma density
+with mean $s/\sigma$. Decreasing $s$ moves emphasis to short diffusion times;
+Degree, which minimizes the current endpoint-degree sum, is the
+greedy maximizer of $\Delta H_S(t)$ as $t\to0$, and log-determinant
+is the limit of $f_s/s$ as $s\to0$. We thus expect the order
+Degree, Exact-Logdet, $s=0.25$, $0.5$, $0.75$, Exact-ER from short
+to long times. Since $s/\sigma\le1$ for $\sigma=1$, $f_s$ weights
+the short times at which all selections behave alike, which is why
+their values of $f_s$ are close even when their heat traces separate
+at $t\ge1$. Smaller $\sigma$ shifts every $f_s$ toward long times and
+toward Exact-ER.
+
+\begin{figure}[!t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+width=\columnwidth,height=5.2cm,
+xmode=log,log basis x=10,xmin=.01,xmax=31.6,ymin=30,ymax=101,
+xlabel={Diffusion time $t$},
+ylabel={$\Delta H_S(t)$ / best (\%)},
+grid=major,major grid style={gray!25},
+tick label style={font=\scriptsize},label style={font=\small},
+legend pos=south west,legend cell align=left,
+legend style={font=\scriptsize,draw=none,fill=white,fill opacity=.85,text opacity=1},
+]
+\addplot[black!55,densely dotted,thick] coordinates {(0.01,100.00) (0.01334,100.00) (0.01778,100.00) (0.02371,100.00) (0.03162,100.00) (0.04217,100.00) (0.05623,100.00) (0.07499,100.00) (0.1,100.00) (0.1334,100.00) (0.1778,100.00) (0.2371,100.00) (0.3162,100.00) (0.4217,99.38) (0.5623,97.41) (0.7499,93.72) (1,86.32) (1.334,73.26) (1.778,58.76) (2.371,46.49) (3.162,38.23) (4.217,33.85) (5.623,32.09) (7.499,31.74) (10,32.06) (13.34,32.67) (17.78,33.37) (23.71,34.01) (31.62,34.50)};
+\addlegendentry{Degree}
+\addplot[PolarOrange,dashed,thick] coordinates {(0.01,99.93) (0.01334,99.90) (0.01778,99.87) (0.02371,99.83) (0.03162,99.78) (0.04217,99.71) (0.05623,99.63) (0.07499,99.53) (0.1,99.42) (0.1334,99.32) (0.1778,99.27) (0.2371,99.34) (0.3162,99.70) (0.4217,100.00) (0.5623,100.00) (0.7499,100.00) (1,98.57) (1.334,93.06) (1.778,86.31) (2.371,80.40) (3.162,76.31) (4.217,74.15) (5.623,73.40) (7.499,73.56) (10,74.30) (13.34,75.41) (17.78,76.68) (23.71,77.89) (31.62,78.84)};
+\addlegendentry{Exact-Logdet}
+\addplot[PolarTeal!60,solid,thick] coordinates {(0.01,99.78) (0.01334,99.71) (0.01778,99.61) (0.02371,99.49) (0.03162,99.33) (0.04217,99.12) (0.05623,98.86) (0.07499,98.53) (0.1,98.15) (0.1334,97.72) (0.1778,97.30) (0.2371,97.00) (0.3162,97.04) (0.4217,97.24) (0.5623,97.57) (0.7499,98.60) (1,99.16) (1.334,96.43) (1.778,92.57) (2.371,88.98) (3.162,86.23) (4.217,84.44) (5.623,83.37) (7.499,82.79) (10,82.65) (13.34,82.91) (17.78,83.42) (23.71,84.01) (31.62,84.49)};
+\addlegendentry{\POLAR{}, $s=0.25$}
+\addplot[PolarTeal,solid,thick] coordinates {(0.01,99.73) (0.01334,99.64) (0.01778,99.52) (0.02371,99.37) (0.03162,99.17) (0.04217,98.92) (0.05623,98.59) (0.07499,98.19) (0.1,97.70) (0.1334,97.15) (0.1778,96.59) (0.2371,96.14) (0.3162,96.05) (0.4217,96.20) (0.5623,96.67) (0.7499,98.23) (1,99.90) (1.334,98.91) (1.778,97.19) (2.371,95.74) (3.162,94.83) (4.217,94.45) (5.623,94.34) (7.499,94.29) (10,94.30) (13.34,94.37) (17.78,94.53) (23.71,94.72) (31.62,94.87)};
+\addlegendentry{\POLAR{}, $s=0.5$}
+\addplot[PolarBlue,solid,thick] coordinates {(0.01,99.70) (0.01334,99.61) (0.01778,99.48) (0.02371,99.31) (0.03162,99.10) (0.04217,98.82) (0.05623,98.46) (0.07499,98.01) (0.1,97.48) (0.1334,96.86) (0.1778,96.22) (0.2371,95.67) (0.3162,95.49) (0.4217,95.56) (0.5623,96.01) (0.7499,97.65) (1,99.62) (1.334,99.17) (1.778,98.13) (2.371,97.41) (3.162,97.17) (4.217,97.41) (5.623,97.88) (7.499,98.36) (10,98.79) (13.34,99.17) (17.78,99.48) (23.71,99.72) (31.62,99.87)};
+\addlegendentry{\POLAR{}, $s=0.75$}
+\addplot[black,dashdotted,thick] coordinates {(0.01,99.61) (0.01334,99.48) (0.01778,99.31) (0.02371,99.09) (0.03162,98.80) (0.04217,98.43) (0.05623,97.96) (0.07499,97.37) (0.1,96.66) (0.1334,95.85) (0.1778,95.00) (0.2371,94.25) (0.3162,93.90) (0.4217,93.92) (0.5623,94.53) (0.7499,96.62) (1,99.39) (1.334,100.00) (1.778,100.00) (2.371,100.00) (3.162,100.00) (4.217,100.00) (5.623,99.91) (7.499,99.74) (10,99.61) (13.34,99.57) (17.78,99.65) (23.71,99.78) (31.62,99.90)};
+\addlegendentry{Exact-ER}
+\end{axis}
+\end{tikzpicture}
+\caption{Heat-trace reduction on ca-HepPh (uniform pool, $k=20$),
+relative to the best of all selections at each time.
+\POLAR{} at $s=0.5$ selects the same set as exact greedy.}
+\label{fig:heat}
+\end{figure}
+
+Figure~\ref{fig:heat} confirms this order on ca-HepPh. At $t=0.03$,
+Degree is best and Exact-ER attains $98.8\%$ of it. At $t=3.2$,
+Exact-ER is best, while Degree, Exact-Logdet, and \POLAR{} with
+$s=0.25$, $0.5$, and $0.75$ attain $38.2\%$, $76.3\%$, $86.2\%$,
+$94.8\%$, and $97.2\%$. On all five uniform pools, Degree is best at
+the shortest times, an inverse-trace selection at the longest, and
+the fractional selections lie between them in the order of $s$.
+Although their final values of $f_s$ differ by a few percent, the
+selected links change the heat trace at $t=3.2$ on ca-HepPh by $24\%$
+between the log-determinant and inverse-trace selections, and by
+$62\%$ between Degree and Exact-ER, on uniform pools. The exponent thus specifies the diffusion horizon that a
+recommendation should improve. On 2-hop pools, few added links merge
+components, so $\Delta H_S(t)\to0$ and ratios at $t\ge30$ are
+dominated by rounding.
+
+\subsection{Parameters and Robustness}
+\label{sec:exp-params}
+Table~\ref{tab:params} varies one parameter at a time on ca-GrQc. The
+shortlist has the largest effect: $B=1$ yields $0.9796$, $B=8$
+already reaches $0.9952$, and $B=32$ matches the exact greedy gain,
+while time grows from $1.35$ to $2.23$\,s. Recovery generally
+improves with $q$, from $0.9694$ at $q=16$ to $0.9999$ at $q=192$.
+The quadrature tolerance has no visible effect: the final gain is the
+same to four decimals while $p$ grows from 60 to 110, so the
+relative marginal bound is conservative for ranking.
+
+\begin{table}[!t]
+\centering
+\caption{One-at-a-time parameter study on ca-GrQc, $s=0.5$:
+gain relative to exact greedy, time, and pole count. Defaults are
+$q=128$, $B=16$, $\epsilon=10^{-2}$.}
+\label{tab:params}
+\footnotesize
+\setlength{\tabcolsep}{3.4pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+$q$ & 16 & 32 & 64 & 96 & 128 & 192 & 256\\
+Ratio & .9694 & .9801 & .9761 & .9934 & .9952 & .9999 & .9987\\
+Time (s) & 1.64 & 1.66 & 1.83 & 1.95 & 2.17 & 2.48 & 2.64\\
+\midrule
+$B$ & 1 & 2 & 4 & 8 & 16 & 32 & 64\\
+Ratio & .9796 & .9809 & .9826 & .9952 & .9952 & 1.0000 & 1.0000\\
+Time (s) & 1.35 & 1.79 & 1.99 & 2.15 & 2.17 & 2.23 & 3.33\\
+\midrule
+$\epsilon$ & $10^{-1}$ & $10^{-2}$ & $10^{-3}$ & $10^{-4}$ & & &\\
+$p$ & 60 & 80 & 90 & 110 & & &\\
+Ratio & .9952 & .9952 & .9952 & .9952 & & &\\
+Time (s) & 2.02 & 2.17 & 2.24 & 2.44 & & &\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Sketch construction}
+Over five projection seeds with $q=128$ and $B=16$, block-orthogonal
+sketches attain mean ratios $0.9938$--$0.9997$ on email-Eu-core,
+Hamster, and ca-GrQc, against $0.9887$--$0.9997$ for Gaussian
+sketches. With $q=24$ and $B=4$, the block-orthogonal mean drops to
+$0.9480$--$0.9909$. Real networks therefore need larger sketches
+than the multiscale benchmark, whose coarse ranking is already stable
+at $q=24$.
+
+\paragraph{Per-round recovery}
+Let $r_t=g_s(e_t\mid S_{t-1})/\max_eg_s(e\mid S_{t-1})$ along the
+\POLAR{} trajectory. With the defaults, the per-trajectory mean of
+$r_t$ is $0.964$--$1.000$ and its minimum is $0.900$--$1.000$; the
+round winner is the true maximizer in $58$--$96\%$ of rounds. The
+minimum enters $\beta$ in Lemma~\ref{lem:approximate-greedy}, and the
+mean enters Remark~\ref{rem:average-beta}.
+
+\paragraph{Candidate pools, budget, and regularization}
+Over three independently drawn uniform pools for each of
+email-Eu-core, Hamster, and ca-GrQc, \POLAR{} attains
+$0.9889$--$1.0000$ of exact greedy. On the ca-GrQc 2-hop pool with
+$k=100$, \POLAR{} with $s=0.5$ attains $0.9929$, against $0.9793$
+for Exact-ER, $0.9918$ for Degree, and $0.9988$ for Exact-Logdet. For
+$\sigma\in\{0.01,0.1\}$, \POLAR{} with $s=0.5$ attains the exact greedy
+gain on all three networks. As $\sigma$ decreases, the fractional
+selections approach Exact-ER, while Degree falls to $0.20$--$0.58$
+of the best $f_{0.5}$.
+
+\section{Related Work and Conclusion}
+\label{sec:related}
+\subsection{Related Work}
+\paragraph{Spectral design and graph mining}
+Effective-resistance minimization has been studied through convex
+edge-weight design~\cite{ghosh2008} and greedy edge
+augmentation~\cite{predari2023}. Current-flow group
+centrality~\cite{li2019group,xia2025current} and forest
+closeness~\cite{grinten2021forest} optimize vertex groups.
+Dynamic forest-matrix queries~\cite{sun2024forest} and
+forest-based opinion optimization~\cite{sun2025opinion} further
+demonstrate the role of Laplacian resolvents in graph mining.
+Kemeny's constant has scalable estimators~\cite{li2021kemeny}
+and a distinct edge-addition theory~\cite{kirkland2025}.
+The companion work FastFrac~\cite{fastfrac} maximizes the
+positive-power trace $\Tr((I+\alpha L)^s)$, which is submodular. Its
+quadrature reduction does not extend to negative exponents, where the
+objective is not submodular (Example~\ref{ex:four-vertex}) and
+marginals require squared resolvent norms; \POLAR{} addresses this
+regime with sketched squared norms and lossless non-submodular
+shortlists.
+
+\paragraph{Matrix functions and shifted Krylov methods}
+Contour quadrature~\cite{hale2008} and rational Krylov methods for
+fractional graph diffusion~\cite{benzi2022} provide complementary
+approaches to matrix functions. Short-recurrence shifted
+solvers~\cite{jegerlehner1996} and restarted shifted
+GMRES~\cite{frommer1998} share Krylov spaces across shifts.
+Lanczos stability and error bounds are developed
+in~\cite{musco2018,chen2022}, and stochastic Lanczos
+quadrature~\cite{ubaru2017} estimates traces of matrix functions.
+Our analysis applies positive quadrature directly to rank-one trace
+marginals and combines it with cross-round endpoint maintenance.
+
+\paragraph{Solvers and spectral approximation}
+Nearly linear SDD solvers~\cite{spielman2014solver,koutis2011}
+and sparse approximate elimination~\cite{kyng2016} provide
+algorithmic foundations for Laplacian systems. Resistance
+sampling~\cite{spielman2011} and deterministic spectral
+sparsification~\cite{batson2012} preserve graph quadratic forms
+with few edges.
+
+\paragraph{Greedy selection and sketches}
+CELF exploits decreasing marginals~\cite{leskovec2007}; the
+ratio--curvature framework handles monotone non-submodular
+objectives~\cite{bian2017}. \POLAR{} derives explicit fractional
+parameters and replaces stale marginal keys with algebraic
+envelopes. Orthogonal projections have sharp confidence
+bounds~\cite{skorski2021}; our trajectory-wide certificate covers
+adaptive selections with fixed sketches.
+
+\subsection{Conclusion}
+\POLAR{} makes fractional inverse-trace link recommendation
+practical on graphs with tens of millions of edges. Positive
+quadrature gives a dimension-free marginal guarantee, ratio and
+curvature bounds support error-aware greedy selection, and pole
+sharing, endpoint maintenance, and algebraic re-ranking reduce
+$k$ rounds to $2q+kB$ multi-shift solves. On eighteen real networks,
+\POLAR{} matched exhaustive search on small instances, attained
+$99.2$--$100\%$ of exact fractional greedy, and processed
+LiveJournal in 15 minutes with $B=1$. The heat-trace representation explains
+what the exponent controls: smaller $s$ favors links that reduce
+short-time return probabilities, larger $s$ favors long-time mixing,
+and the selected links follow this order. Future work includes
+preconditioned solvers for high-degree networks and maintaining the
+sketches as the base graph evolves.
+
+\section*{Declaration on the Use of Generative AI Tools}
+Generative AI tools were used only for language polishing and
+grammar checking during the preparation of this manuscript. The
+authors reviewed and verified all AI-assisted edits and take full
+responsibility for the content of the manuscript.
+
+
+
+\IEEEtriggeratref{18}
+\begin{thebibliography}{31}
+
+\bibitem{ghosh2008}
+A.~Ghosh, S.~Boyd, and A.~Saberi,
+``Minimizing effective resistance of a graph,''
+\emph{SIAM Review}, vol.~50, no.~1,
+pp.~37--66, 2008, doi: 10.1137/050645452.
+
+\bibitem{predari2023}
+M.~Predari, L.~Berner, R.~Kooij, and H.~Meyerhenke,
+\lq\lq{}Greedy optimization of resistance-based graph robustness with global and local edge insertions,''
+\emph{Social Network Analysis and Mining}, vol.~13, Art.~130, 2023,
+doi: 10.1007/s13278-023-01137-1.
+
+\bibitem{li2019group}
+H.~Li, R.~Peng, L.~Shan, Y.~Yi, and Z.~Zhang,
+``Current flow group closeness centrality for complex networks,''
+in \emph{Proc. The Web Conference (WWW)}, 2019,
+pp.~961--971, doi: 10.1145/3308558.3313490.
+
+\bibitem{xia2025current}
+H.~Xia and Z.~Zhang,
+``Fast maximization of current flow group closeness centrality,''
+in \emph{Proc. IEEE ICDE}, 2025,
+doi: 10.1109/ICDE65448.2025.00241.
+
+\bibitem{sun2024forest}
+H.~Sun, X.~Zhou, and Z.~Zhang,
+``Fast computation for the forest matrix of an evolving graph,''
+in \emph{Proc. ACM SIGKDD}, 2024, pp.~2755--2764,
+doi: 10.1145/3637528.3671822.
+
+\bibitem{lipman2010}
+Y.~Lipman, R.~M.~Rustamov, and T.~A.~Funkhouser,
+\lq\lq{}Biharmonic distance,''
+\emph{ACM Transactions on Graphics}, vol.~29, no.~3, Art.~27, 2010,
+doi: 10.1145/1805964.1805971.
+
+\bibitem{benzi2022}
+M.~Benzi and I.~Simunec,
+\lq\lq{}Rational Krylov methods for fractional diffusion problems on graphs,''
+\emph{BIT Numerical Mathematics}, vol.~62, pp.~357--385, 2022,
+doi: 10.1007/s10543-021-00881-0.
+
+\bibitem{leskovec2007}
+J.~Leskovec, A.~Krause, C.~Guestrin, C.~Faloutsos,
+J.~VanBriesen, and N.~Glance,
+\lq\lq{}Cost-effective outbreak detection in networks,''
+in \emph{Proc. ACM SIGKDD}, 2007, pp.~420--429.
+
+\bibitem{jegerlehner1996}
+B.~Jegerlehner,
+\lq\lq{}Krylov space solvers for shifted linear systems,''
+arXiv:hep-lat/9612014, 1996.
+
+\bibitem{bian2017}
+A.~A.~Bian, J.~M.~Buhmann, A.~Krause, and S.~Tschiatschek,
+\lq\lq{}Guarantees for greedy maximization of non-submodular functions with applications,''
+in \emph{Proc. ICML}, PMLR, vol.~70, pp.~498--507, 2017.
+
+\bibitem{grinten2021forest}
+A.~van der Grinten, E.~Angriman, M.~Predari, and H.~Meyerhenke,
+``New approximation algorithms for forest closeness centrality---for individual vertices and vertex groups,''
+in \emph{Proc. SIAM SDM}, 2021, pp.~136--144,
+doi: 10.1137/1.9781611976700.16.
+
+\bibitem{sun2025opinion}
+H.~Sun, Y.~Sun, X.~Zhou, and Z.~Zhang,
+``Fast computation and optimization for opinion-based quantities of Friedkin--Johnsen model,''
+in \emph{Advances in Neural Information Processing Systems}, vol.~38, 2025,
+doi: 10.52202/085713-1269.
+
+\bibitem{kirkland2025}
+S.~Kirkland, Y.~Li, J.~S.~McAlister, and X.~Zhang,
+``Edge addition and the change in Kemeny's constant,''
+\emph{Discrete Applied Mathematics}, vol.~373,
+pp.~77--90, 2025, doi: 10.1016/j.dam.2025.04.031.
+
+\bibitem{hale2008}
+N.~Hale, N.~J.~Higham, and L.~N.~Trefethen,
+``Computing $A^\alpha$, $\log(A)$ and related matrix functions by contour integrals,''
+\emph{SIAM Journal on Numerical Analysis}, vol.~46, no.~5,
+pp.~2505--2523, 2008, doi: 10.1137/070700607.
+
+\bibitem{dlmf-quadrature}
+NIST, \emph{Digital Library of Mathematical Functions},
+Sec.~3.5, \lq\lq{}Quadrature.''
+[Online]. Available: \url{https://dlmf.nist.gov/3.5}
+
+\bibitem{dlmf-jacobi}
+NIST, \emph{Digital Library of Mathematical Functions},
+Sec.~18.3, \lq\lq{}Definitions.''
+[Online]. Available: \url{https://dlmf.nist.gov/18.3}
+
+\bibitem{musco2018}
+C.~Musco, C.~Musco, and A.~Sidford,
+``Stability of the Lanczos method for matrix function approximation,''
+in \emph{Proc. ACM--SIAM SODA}, 2018, pp.~1605--1624,
+doi: 10.1137/1.9781611975031.105.
+
+\bibitem{chen2022}
+T.~Chen, A.~Greenbaum, C.~Musco, and C.~Musco,
+``Error bounds for Lanczos-based matrix function approximation,''
+\emph{SIAM Journal on Matrix Analysis and Applications}, vol.~43, no.~2,
+pp.~787--811, 2022, doi: 10.1137/21M1427784.
+
+\bibitem{spielman2011}
+D.~A.~Spielman and N.~Srivastava,
+\lq\lq{}Graph sparsification by effective resistances,''
+\emph{SIAM Journal on Computing}, vol.~40, no.~6,
+pp.~1913--1926, 2011, doi: 10.1137/080734029.
+
+\bibitem{skorski2021}
+M.~Skorski,
+\lq\lq{}Johnson--Lindenstrauss transforms with best confidence,''
+in \emph{Proc. COLT}, PMLR, vol.~134, pp.~3989--4007, 2021.
+
+\bibitem{konect}
+J.~Kunegis,
+``KONECT: The Koblenz network collection,''
+in \emph{Proc. WWW Companion}, 2013, pp.~1343--1350,
+doi: 10.1145/2487788.2488173.
+
+\bibitem{snap}
+J.~Leskovec and A.~Krevl,
+``SNAP Datasets: Stanford large network dataset collection,''
+June 2014. [Online]. Available: \url{https://snap.stanford.edu/data/}
+
+\bibitem{ubaru2017}
+S.~Ubaru, J.~Chen, and Y.~Saad,
+``Fast estimation of $\mathrm{tr}(f(A))$ via stochastic Lanczos quadrature,''
+\emph{SIAM Journal on Matrix Analysis and Applications}, vol.~38, no.~4,
+pp.~1075--1099, 2017, doi: 10.1137/16M1104974.
+
+\bibitem{polar-repo}
+\POLAR{}: Code, data, results, and extended version with complete
+proofs. [Online]. Available: \url{https://github.com/chenty2333/POLAR}
+
+\bibitem{li2021kemeny}
+S.~Li, X.~Huang, and C.-H.~Lee,
+``An efficient and scalable algorithm for estimating Kemeny's constant of a Markov chain on large graphs,''
+in \emph{Proc. ACM SIGKDD}, 2021, pp.~964--974,
+doi: 10.1145/3447548.3467431.
+
+\bibitem{fastfrac}
+``FastFrac: Fast edge recommendation for fractional spectral traces
+on graphs,'' companion submission to \emph{IEEE ICDE}, 2027.
+
+\bibitem{frommer1998}
+A.~Frommer and U.~Gl\"assner,
+``Restarted GMRES for shifted linear systems,''
+\emph{SIAM Journal on Scientific Computing}, vol.~19, no.~1,
+pp.~15--26, 1998, doi: 10.1137/S1064827596304563.
+
+\bibitem{spielman2014solver}
+D.~A.~Spielman and S.-H.~Teng,
+``Nearly linear time algorithms for preconditioning and solving symmetric, diagonally dominant linear systems,''
+\emph{SIAM Journal on Matrix Analysis and Applications}, vol.~35, no.~3,
+pp.~835--885, 2014, doi: 10.1137/090771430.
+
+\bibitem{koutis2011}
+I.~Koutis, G.~L.~Miller, and R.~Peng,
+``A nearly-$m\log n$ time solver for SDD linear systems,''
+in \emph{Proc. IEEE FOCS}, 2011, pp.~590--598,
+doi: 10.1109/FOCS.2011.85.
+
+\bibitem{kyng2016}
+R.~Kyng and S.~Sachdeva,
+``Approximate Gaussian elimination for Laplacians---fast, sparse, and simple,''
+in \emph{Proc. IEEE FOCS}, 2016, pp.~573--582,
+doi: 10.1109/FOCS.2016.68.
+
+\bibitem{batson2012}
+J.~Batson, D.~A.~Spielman, and N.~Srivastava,
+``Twice-Ramanujan sparsifiers,''
+\emph{SIAM Journal on Computing}, vol.~41, no.~6,
+pp.~1704--1721, 2012, doi: 10.1137/090772873.
+
+\end{thebibliography}
+\end{document}
+

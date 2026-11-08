@@ -1,0 +1,13 @@
+{
+  "source": "POLAR_ICDE_Final.tex",
+  "pages": 17,
+  "proof_environments": 16,
+  "proofs_byte_identical_to_previous_source": true,
+  "bibliography_entries": 28,
+  "all_references_cited": true,
+  "unresolved_references": false,
+  "overfull_boxes": false,
+  "compile_passes": 3,
+  "source_sha256": "9e9677ba62268b172b67d76abc56b30a327657ff6b919d9458dcea2f6055bb74",
+  "pdf_sha256": "a190956c91a25def5b79b96b26c766f9be2a3aa0eb63b6bd6a48e0d2dbf6cbdb"
+}

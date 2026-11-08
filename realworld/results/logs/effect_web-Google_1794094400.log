@@ -1,0 +1,10 @@
+web-Google POLAR(s=0.5) 638.90s
+web-Google Sketched-ER 579.17s
+web-Google Sketched-Logdet 568.05s
+web-Google Degree 0.00s
+web-Google Random#0 0.00s
+web-Google Random#1 0.00s
+web-Google Random#2 0.00s
+web-Google evaluated frac(s=0.5)
+web-Google evaluated er
+web-Google evaluated logdet

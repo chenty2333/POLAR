@@ -1,0 +1,5 @@
+Dolphins 1 0.2214487251850059 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 1.0, 'Degree': 1.0}
+Dolphins 2 0.410514241430036 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 1.0, 'Exact-Logdet': 1.0, 'Degree': 1.0}
+Dolphins 3 0.5824472047292097 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.9872, 'Exact-Logdet': 1.0, 'Degree': 1.0}
+Dolphins 4 0.7463956931978899 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.9997, 'Exact-Logdet': 1.0, 'Degree': 1.0}
+Dolphins 5 0.9100631425430841 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.9975, 'Exact-Logdet': 0.9978, 'Degree': 0.9978}

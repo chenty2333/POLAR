@@ -1,0 +1,7 @@
+roadNet-PA Naive 0 139.56s spmv=130560
+roadNet-PA POLAR(B=1) 0 8.17s spmv=6967
+roadNet-PA POLAR(B=16) 0 17.90s spmv=13584
+roadNet-PA POLAR(B=1) 1 8.02s spmv=6967
+roadNet-PA POLAR(B=16) 1 17.89s spmv=13584
+roadNet-PA POLAR(B=16) 2 17.89s spmv=13584
+roadNet-PA POLAR(B=1) 2 8.01s spmv=6967

@@ -1,0 +1,12 @@
+ca-CondMat uniform POLAR(s=0.25) 188s
+ca-CondMat uniform POLAR(s=0.5) 193s
+ca-CondMat uniform POLAR(s=0.75) 187s
+ca-CondMat uniform Sketched-ER 191s
+ca-CondMat uniform Sketched-Logdet 192s
+ca-CondMat uniform Degree 198s
+ca-CondMat uniform Random#0 192s
+ca-CondMat uniform Random#1 190s
+ca-CondMat uniform Random#2 193s
+ca-CondMat uniform Exact(s=0.5) 194s
+ca-CondMat uniform Exact-ER 197s
+ca-CondMat uniform DOWNSTREAM CPU DONE

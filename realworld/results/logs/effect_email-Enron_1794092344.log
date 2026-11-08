@@ -1,0 +1,14 @@
+email-Enron POLAR(s=0.25) 22.36s
+email-Enron POLAR(s=0.5) 16.86s
+email-Enron POLAR(s=0.75) 13.50s
+email-Enron Sketched-ER 8.35s
+email-Enron Sketched-Logdet 7.02s
+email-Enron Degree 0.00s
+email-Enron Random#0 0.00s
+email-Enron Random#1 0.00s
+email-Enron Random#2 0.00s
+email-Enron evaluated frac(s=0.25)
+email-Enron evaluated frac(s=0.5)
+email-Enron evaluated frac(s=0.75)
+email-Enron evaluated er
+email-Enron evaluated logdet

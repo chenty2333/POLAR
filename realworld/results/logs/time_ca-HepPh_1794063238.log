@@ -1,0 +1,9 @@
+ca-HepPh Naive 0 43.78s spmv=840174
+ca-HepPh POLAR(B=1) 0 4.33s spmv=43792
+ca-HepPh POLAR(B=16) 0 5.61s spmv=77489
+ca-HepPh POLAR(B=1) 1 4.21s spmv=43791
+ca-HepPh POLAR(B=16) 1 5.60s spmv=77489
+ca-HepPh Naive 1 43.64s spmv=840174
+ca-HepPh POLAR(B=16) 2 5.60s spmv=77489
+ca-HepPh Naive 2 43.73s spmv=840174
+ca-HepPh POLAR(B=1) 2 4.20s spmv=43792

@@ -1,0 +1,9 @@
+email-Enron Naive 0 90.73s spmv=1236314
+email-Enron POLAR(B=1) 0 8.15s spmv=65001
+email-Enron POLAR(B=16) 0 10.65s spmv=121468
+email-Enron POLAR(B=1) 1 8.08s spmv=65014
+email-Enron POLAR(B=16) 1 10.66s spmv=121468
+email-Enron Naive 1 90.60s spmv=1236314
+email-Enron POLAR(B=16) 2 10.64s spmv=121468
+email-Enron Naive 2 90.58s spmv=1236314
+email-Enron POLAR(B=1) 2 8.12s spmv=65009

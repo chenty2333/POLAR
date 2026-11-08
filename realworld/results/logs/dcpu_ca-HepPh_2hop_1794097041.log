@@ -1,0 +1,15 @@
+ca-HepPh 2hop POLAR(s=0.25) 29s
+ca-HepPh 2hop POLAR(s=0.5) 29s
+ca-HepPh 2hop POLAR(s=0.75) 29s
+ca-HepPh 2hop Sketched-ER 30s
+ca-HepPh 2hop Sketched-Logdet 29s
+ca-HepPh 2hop Degree 29s
+ca-HepPh 2hop Random#0 29s
+ca-HepPh 2hop Random#1 29s
+ca-HepPh 2hop Random#2 29s
+ca-HepPh 2hop Exact(s=0.5) 29s
+ca-HepPh 2hop Exact-ER 30s
+ca-HepPh 2hop Exact-Logdet 29s
+ca-HepPh 2hop Exact(s=0.25) 29s
+ca-HepPh 2hop Exact(s=0.75) 29s
+ca-HepPh 2hop DOWNSTREAM CPU DONE

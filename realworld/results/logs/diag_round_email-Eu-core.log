@@ -1,0 +1,15 @@
+email-Eu-core block 24 4 0 min r 0.8678 mean r 0.9316 min shortlist 0.8678
+email-Eu-core block 24 4 1 min r 0.8820 mean r 0.9708 min shortlist 0.8820
+email-Eu-core block 24 4 2 min r 0.8698 mean r 0.9428 min shortlist 0.8698
+email-Eu-core block 24 4 3 min r 0.8678 mean r 0.9418 min shortlist 0.8678
+email-Eu-core block 24 4 4 min r 0.8729 mean r 0.9394 min shortlist 0.8729
+email-Eu-core block 128 16 0 min r 0.9999 mean r 1.0000 min shortlist 0.9999
+email-Eu-core block 128 16 1 min r 1.0000 mean r 1.0000 min shortlist 1.0000
+email-Eu-core block 128 16 2 min r 0.9717 mean r 0.9986 min shortlist 0.9717
+email-Eu-core block 128 16 3 min r 0.9999 mean r 1.0000 min shortlist 0.9999
+email-Eu-core block 128 16 4 min r 1.0000 mean r 1.0000 min shortlist 1.0000
+email-Eu-core gauss 128 16 0 min r 0.9488 mean r 0.9857 min shortlist 0.9488
+email-Eu-core gauss 128 16 1 min r 0.8752 mean r 0.9682 min shortlist 0.8752
+email-Eu-core gauss 128 16 2 min r 0.9920 mean r 0.9983 min shortlist 0.9920
+email-Eu-core gauss 128 16 3 min r 0.8789 mean r 0.9747 min shortlist 0.8789
+email-Eu-core gauss 128 16 4 min r 0.9045 mean r 0.9883 min shortlist 0.9045

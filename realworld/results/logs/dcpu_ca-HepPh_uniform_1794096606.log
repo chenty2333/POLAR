@@ -1,0 +1,15 @@
+ca-HepPh uniform POLAR(s=0.25) 29s
+ca-HepPh uniform POLAR(s=0.5) 29s
+ca-HepPh uniform POLAR(s=0.75) 28s
+ca-HepPh uniform Sketched-ER 30s
+ca-HepPh uniform Sketched-Logdet 29s
+ca-HepPh uniform Degree 30s
+ca-HepPh uniform Random#0 29s
+ca-HepPh uniform Random#1 29s
+ca-HepPh uniform Random#2 29s
+ca-HepPh uniform Exact(s=0.5) 29s
+ca-HepPh uniform Exact-ER 30s
+ca-HepPh uniform Exact-Logdet 29s
+ca-HepPh uniform Exact(s=0.25) 28s
+ca-HepPh uniform Exact(s=0.75) 28s
+ca-HepPh uniform DOWNSTREAM CPU DONE

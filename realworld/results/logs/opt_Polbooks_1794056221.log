@@ -1,0 +1,5 @@
+Polbooks 1 0.11466519617766835 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.9745, 'Exact-Logdet': 1.0, 'Degree': 0.8026}
+Polbooks 2 0.20668990691732603 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.9837, 'Exact-Logdet': 1.0, 'Degree': 0.8427}
+Polbooks 3 0.29829263038319453 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.9902, 'Exact-Logdet': 1.0, 'Degree': 0.8909}
+Polbooks 4 0.3804193889281322 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.9918, 'Exact-Logdet': 1.0, 'Degree': 0.9111}
+Polbooks 5 0.46215569013973123 {'POLAR': 1.0, 'Exact': 1.0, 'Exact-ER': 0.993, 'Exact-Logdet': 0.9975, 'Degree': 0.9975}

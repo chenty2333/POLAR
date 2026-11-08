@@ -1,0 +1,116 @@
+{
+ "mode": "time",
+ "graph": {
+  "name": "com-LiveJournal",
+  "source": "com-lj.ungraph.txt.gz",
+  "sha256": "e0e8996341b963ecbe0a572c71446c03fd6e93a6c521578eaae7566c68ff608e",
+  "n": 3997962,
+  "m": 34681189,
+  "preprocessing": "retain all endpoint vertices; undirect; deduplicate; remove self-loops",
+  "N": 2000,
+  "candidate_seed": 20279913,
+  "pool": "uniform",
+  "dmax": 14815.0,
+  "sigma": 1.0,
+  "n_active": 3997
+ },
+ "params": {
+  "k": 20,
+  "q": 128,
+  "B": 16,
+  "eps": 0.01,
+  "tol": 1e-07,
+  "s": 0.5,
+  "repetitions": 1,
+  "naive_reps": 1,
+  "naive_limit": 1800.0
+ },
+ "env": {
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "cupy": "14.2.0",
+  "numpy": "2.5.4",
+  "python": "3.12.3",
+  "host": "autodl-container-271149a41f-09c69976"
+ },
+ "runs": {
+  "Naive": [
+   {
+    "sequence": [
+     35,
+     1645,
+     1857
+    ],
+    "seconds": 2515.1448799911886,
+    "spmv": 469168,
+    "rhs": 768,
+    "p": 136,
+    "rounds": 3,
+    "truncated": true
+   }
+  ],
+  "POLAR(B=1)": [
+   {
+    "sequence": [
+     35,
+     1645,
+     1857,
+     116,
+     858,
+     570,
+     242,
+     867,
+     733,
+     1063,
+     711,
+     953,
+     992,
+     60,
+     282,
+     1650,
+     1440,
+     1634,
+     1455,
+     135
+    ],
+    "seconds": 908.754199327901,
+    "spmv": 165786,
+    "rhs": 276,
+    "p": 136,
+    "rounds": 20,
+    "truncated": false
+   }
+  ],
+  "POLAR(B=16)": [
+   {
+    "sequence": [
+     35,
+     1645,
+     858,
+     60,
+     733,
+     1455,
+     1857,
+     242,
+     861,
+     609,
+     867,
+     361,
+     1474,
+     1352,
+     512,
+     1730,
+     1567,
+     1869,
+     135,
+     1650
+    ],
+    "seconds": 1720.9297924526036,
+    "spmv": 311128,
+    "rhs": 576,
+    "p": 136,
+    "rounds": 20,
+    "truncated": false
+   }
+  ]
+ }
+}

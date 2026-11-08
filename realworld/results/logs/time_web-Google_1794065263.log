@@ -1,0 +1,5 @@
+web-Google Naive 0 2225.13s spmv=2775596
+web-Google POLAR(B=1) 0 125.11s spmv=147316
+web-Google POLAR(B=16) 0 303.39s spmv=278167
+web-Google POLAR(B=1) 1 124.94s spmv=147313
+web-Google POLAR(B=16) 1 302.66s spmv=278167

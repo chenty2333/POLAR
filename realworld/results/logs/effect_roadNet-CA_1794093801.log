@@ -1,0 +1,14 @@
+roadNet-CA POLAR(s=0.25) 69.23s
+roadNet-CA POLAR(s=0.5) 69.25s
+roadNet-CA POLAR(s=0.75) 68.99s
+roadNet-CA Sketched-ER 63.42s
+roadNet-CA Sketched-Logdet 63.25s
+roadNet-CA Degree 0.00s
+roadNet-CA Random#0 0.00s
+roadNet-CA Random#1 0.00s
+roadNet-CA Random#2 0.00s
+roadNet-CA evaluated frac(s=0.25)
+roadNet-CA evaluated frac(s=0.5)
+roadNet-CA evaluated frac(s=0.75)
+roadNet-CA evaluated er
+roadNet-CA evaluated logdet
