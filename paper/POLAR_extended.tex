@@ -42,9 +42,9 @@ via Pole-Shared Krylov Sketching\\ {\large (Extended Version with Complete Proof
 \begin{abstract}
 Spectral link recommendation improves a graph by selecting a small
 set of new edges. We study the regularized fractional inverse trace
-$\Tr((L+\sigma I)^{-s})$, $0<s<1$, whose spectral sensitivity
-$s(\lambda+\sigma)^{-s-1}$ balances structural improvements across
-scales and whose exponent selects a diffusion time scale.
+$\Tr((L+\sigma I)^{-s})$, $0<s<1$, whose gain averages heat-trace
+reductions over diffusion times of mean $s/\sigma$, interpolating
+between degree heuristics and effective resistance.
 Optimizing this objective requires efficient marginal
 evaluation despite nonlinear matrix powers, non-submodularity,
 and repeated linear solves. We present \POLAR{} (Pole-shared
@@ -64,7 +64,7 @@ five medium networks, while stochastic Lanczos greedy attains
 $93.3$--$99.5\%$ at $12$--$39\times$ the time. With $B=1$, it is
 $8.9$--$17.8\times$ faster than sketch recomputation with identical
 selections and processes LiveJournal in 15 minutes. On a
-multiscale benchmark, its gains exceed exact inverse-trace greedy by
+multiscale benchmark with $\sigma=10^{-2}$, its gains exceed exact inverse-trace greedy by
 $48.06\%$ and $21.77\%$ at $s=0.25$ and $s=0.5$.
 \end{abstract}
 
@@ -99,13 +99,15 @@ continuous-time random walks, over times $t$ with a Gamma weight of
 mean $s/\sigma$. Degree heuristics maximize this reduction as
 $t\to0$, whereas inverse-trace (effective-resistance) augmentation,
 used for example to rewire graph neural networks against
-over-squashing~\cite{black2023}, corresponds to $s=1$. The pair
+over-squashing~\cite{black2023}, is the case $s=1$, the longest
+horizon in this family. The pair
 $(s,\sigma)$ therefore lets an analyst target the horizon at which
 spreading, consensus, or message passing is observed. On real
 networks with $\sigma=1$, exact ER, log-det, and fractional greedy
 reach values of $f_s$ within a few percent, yet the $s=0.25$ and ER
-selections have Jaccard similarity only $0.43$--$0.74$, and the
-heat-trace reductions of the selected links differ by up to $24\%$.
+selections have Jaccard similarity only $0.43$--$0.74$ on three
+medium networks, and on ca-HepPh the log-det and ER selections differ
+by $24\%$ in heat-trace reduction at $t=3.2$.
 On a multiscale graph where short and long horizons conflict,
 fractional selection exceeds ER greedy by up to $48\%$
 (Fig.~\ref{fig:motivation}(b)).
@@ -144,8 +146,9 @@ restore lazy evaluation without diminishing returns. The worst-case
 factor is conservative, so we also report the measured per-round
 factor.
 \item \textbf{Reuse across poles, rounds, and candidates (third
-obstacle).} Unlike positive powers~\cite{fastfrac}, negative
-exponents require squared resolvent norms, which we sketch. One
+obstacle).} Unlike the positive-power trace of
+FastFrac~\cite{fastfrac}, negative exponents require squared
+resolvent norms, which we sketch. One
 selected-edge solve updates all poles and endpoint sketches, norm
 caches cost $O(pn_{\mathcal C}q+pN)$ per round, and algebraic
 re-ranking reuses the champion's solve, so $k$ rounds need $2q+kB$
@@ -2392,7 +2395,9 @@ $99.2$--$100\%$ of exact fractional greedy, and processed
 LiveJournal in 15 minutes with $B=1$. The heat-trace representation explains
 what the exponent controls: smaller $s$ favors links that reduce
 short-time return probabilities, larger $s$ favors long-time mixing,
-and the selected links follow this order. Future work includes
+and the selected links follow this order;
+with $\sigma=1$ the objectives differ mainly in which links they pick,
+while multiscale structure also separates their values. Future work includes
 preconditioned solvers for high-degree networks and maintaining the
 sketches as the base graph evolves.
 
