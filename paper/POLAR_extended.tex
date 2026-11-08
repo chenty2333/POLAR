@@ -395,15 +395,30 @@ $\Tr L=\sum_vd_v$, and $\Tr L^2=\sum_vd_v^2+\sum_{u\ne v}w_{uv}^2$.
 \end{proof}
 
 The weight $t^{s-1}e^{-\sigma t}$ is proportional to a Gamma density
-with mean $s/\sigma$. Degree, which minimizes the current
+with shape $s$ and mean $s/\sigma$. Degree, which minimizes the current
 endpoint-degree sum, is the greedy maximizer of $\Delta H_S(t)$ as
 $t\to0$; log-determinant is the limit of $f_s/s$ as $s\to0$; and the
-inverse trace is $s=1$. The pair $(s,\sigma)$ is thus a single
-horizon parameter: decreasing $s$ or increasing $\sigma$ moves the
-emphasis to short diffusion times, and Degree, log-determinant,
-$f_s$ with increasing $s$, and the inverse trace target increasingly
-long horizons. Section~\ref{sec:exp-heat} verifies this order on
-real networks.
+inverse trace is $s=1$. Decreasing $s$ or increasing $\sigma$ moves the
+weight toward short times, so Degree, log-determinant, $f_s$ with
+increasing $s$, and the inverse trace target increasingly long
+horizons (Section~\ref{sec:exp-heat}). The two parameters are not
+interchangeable: unless $S$ joins components, the $\sigma^{-s}$ terms
+of zero eigenvalues cancel as $\sigma\to0$, and $f_s$ tends to the
+decrease of $\sum_{\lambda>0}\lambda^{-s}$, which retains $s$. On the
+triangle $\{1,2,3\}$ with leaves $4,5$ at vertex~1 and $6$ at
+vertex~2, this limit with $s=\frac12$ prefers $\{4,5\}$ to $\{2,4\}$
+($0.423$ vs.\ $0.403$), and the inverse trace the reverse ($2/3$ vs.\
+$13/18$). Indeed, the Laplacian characteristic polynomials of the base graph
+and of the graphs with $\{2,4\}$ and $\{4,5\}$ added are
+$x(x-1)Q(x)$, $x(x-2)(x^2-6x+4)(x^2-6x+6)$, and $x(x-3)Q(x)$, with
+$Q(x)=x^4-11x^3+39x^2-49x+18$. Hence $\{4,5\}$ gains $1-3^{-s}$
+(it is a twin pair, cf.\ Proposition~\ref{prop:twins}), the
+pseudoinverse traces are $67/18$, $3$, and $55/18$, and the $s=\frac12$
+gain of $\{2,4\}$ is $0.4025436208$. Both strict orders persist for all
+sufficiently small $\sigma>0$ by continuity. A link that joins two
+components instead adds $\sigma^{-s}+O(1)$ for every $s$, so with a
+candidate pool spanning components all exponents first favor merging
+links as $\sigma\to0$.
 
 \subsection{An Exact Obstruction to Submodularity}
 A set function is submodular if its marginal satisfies
@@ -2248,18 +2263,13 @@ relative to the best of all selections at each time.
 \label{fig:heat}
 \end{figure}
 
-Figure~\ref{fig:heat} confirms this order on ca-HepPh. At $t=0.03$,
-Degree is best and Exact-ER attains $98.8\%$ of it. At $t=3.2$,
+Figure~\ref{fig:heat} confirms this order on ca-HepPh. At $t=3.2$,
 Exact-ER is best, while Degree, Exact-Logdet, and \POLAR{} with
 $s=0.25$, $0.5$, and $0.75$ attain $38.2\%$, $76.3\%$, $86.2\%$,
 $94.8\%$, and $97.2\%$. On all five uniform pools, Degree is best at
 the shortest times, an inverse-trace selection at the longest, and
 the fractional selections lie between them in the order of $s$.
-On the ca-HepPh uniform pool, the heat-trace reductions at $t=3.2$
-differ by $24\%$ between the log-determinant and inverse-trace
-selections, although their $f_s$ values differ by at most $3\%$, and by
-$62\%$ between Degree and Exact-ER. The exponent thus orders
-recommendations by the diffusion horizon they improve. On 2-hop pools, few added links merge
+On 2-hop pools, few added links merge
 components, so $\Delta H_S(t)\to0$ and ratios at $t\ge30$ are
 dominated by rounding.
 
@@ -2329,7 +2339,8 @@ $k=100$, \POLAR{} with $s=0.5$ attains $0.9929$, against $0.9793$
 for Exact-ER, $0.9918$ for Degree, and $0.9988$ for Exact-Logdet. For
 $\sigma\in\{0.01,0.1\}$, \POLAR{} with $s=0.5$ attains the exact greedy
 gain on all three networks. As $\sigma$ decreases, the fractional
-selections approach Exact-ER, while Degree falls to $0.20$--$0.58$
+selections move toward, but do not in general coincide with, Exact-ER
+(Jaccard $0.74$--$1.00$ at $\sigma=0.01$), while Degree falls to $0.20$--$0.58$
 of the best $f_{0.5}$.
 
 \section{Related Work and Conclusion}
@@ -2346,13 +2357,11 @@ forest-based opinion optimization~\cite{sun2025opinion} further
 demonstrate the role of Laplacian resolvents in graph mining.
 Kemeny's constant has scalable estimators~\cite{li2021kemeny}
 and a distinct edge-addition theory~\cite{kirkland2025}.
-The companion work FastFrac~\cite{fastfrac} maximizes the
-positive-power trace $\Tr((I+\alpha L)^s)$, which is submodular. Its
-quadrature reduction does not extend to negative exponents, where the
-objective is not submodular (Example~\ref{ex:four-vertex}) and
-marginals require squared resolvent norms; \POLAR{} addresses this
-regime with sketched squared norms and exact
-non-submodular proxy shortlists.
+The companion work FastFrac~\cite{fastfrac} maximizes the submodular
+positive-power trace $\Tr((I+\alpha L)^s)$. For negative exponents its
+quadrature reduction fails, the objective is not submodular
+(Example~\ref{ex:four-vertex}), and marginals need squared resolvent
+norms, which \POLAR{} sketches.
 
 \paragraph{Matrix functions and shifted Krylov methods}
 Contour quadrature~\cite{hale2008} and rational Krylov methods for
