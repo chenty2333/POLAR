@@ -55,15 +55,15 @@ $O((1+\log\kappa_*)\log(1/\epsilon))$ poles. Explicit
 submodularity-ratio and curvature bounds establish an error-aware
 greedy guarantee. The algorithm shares Krylov iterations across
 poles, maintains endpoint sketches across rounds, and re-ranks a
-lossless proxy shortlist algebraically, so $k$ rounds need $2q+kB$
+proxy shortlist algebraically, so $k$ rounds need $2q+kB$
 rather than $2kq$ multi-shift solves.
 On eighteen real networks with up to $4.0$ million vertices and
 $34.7$ million edges, \POLAR{} attains the exhaustive optimum on all
 small instances and $99.2$--$100\%$ of exact fractional greedy on
 five medium networks, while stochastic Lanczos greedy attains
-$93.3$--$99.5\%$ at $12$--$39\times$ the time. It is up to
-$17.8\times$ faster than sketch recomputation with identical
-selections and processes LiveJournal in 15 minutes ($B=1$). On a
+$93.3$--$99.5\%$ at $12$--$39\times$ the time. With $B=1$, it is
+$8.9$--$17.8\times$ faster than sketch recomputation with identical
+selections and processes LiveJournal in 15 minutes. On a
 multiscale benchmark, its gains exceed exact inverse-trace greedy by
 $48.06\%$ and $21.77\%$ at $s=0.25$ and $s=0.5$.
 \end{abstract}
@@ -83,11 +83,8 @@ minimizes $\Tr((L+\sigma I)^{-1})$.
 Related graph-mining tasks include current-flow group
 selection~\cite{li2019group,xia2025current} and forest-matrix
 queries on evolving graphs~\cite{sun2024forest}.
-Related criteria such as biharmonic distance use inverse-square
-spectral weights~\cite{lipman2010}. These exponents encode
-different preferences over structural scales. Fractional graph
-operators provide a continuous choice of spectral weighting and
-have received substantial numerical attention~\cite{benzi2022}.
+Fractional graph operators provide a continuous choice of spectral
+weighting~\cite{benzi2022}.
 
 We optimize the fractional gain
 \begin{equation}
@@ -95,14 +92,23 @@ f_s(S)=\Tr(M_0^{-s})-\Tr((M_0+L_S)^{-s}),\quad 0<s<1,
 \label{eq:intro-objective}
 \end{equation}
 where $M_0=L_0+\sigma I$ and $L_S$ contains the selected
-unit-weight links. Its eigenvalue sensitivity is
-$s(\lambda+\sigma)^{-s-1}$. Compared with $s=1$, a smaller
-exponent reduces the relative preference for the lowest
-nonconstant modes. On a graph containing strongly coupled cores, a weak
-bridge, and peripheral defects, this changes the competition
-between adding more intercore links and repairing leaf
-connections. Figure~\ref{fig:motivation} connects this spectral
-mechanism to both budget allocation and non-submodularity.
+unit-weight links. The exponent selects a diffusion time scale. By
+Proposition~\ref{prop:heat}, $f_s(S)$ averages the reduction of the
+heat trace $\Tr e^{-tL}$, the total return probability of
+continuous-time random walks, over times $t$ with a Gamma weight of
+mean $s/\sigma$. Degree heuristics maximize this reduction as
+$t\to0$, whereas inverse-trace (effective-resistance) augmentation,
+used for example to rewire graph neural networks against
+over-squashing~\cite{black2023}, corresponds to $s=1$. The pair
+$(s,\sigma)$ therefore lets an analyst target the horizon at which
+spreading, consensus, or message passing is observed. On real
+networks with $\sigma=1$, exact ER, log-det, and fractional greedy
+reach values of $f_s$ within a few percent, yet the $s=0.25$ and ER
+selections have Jaccard similarity only $0.43$--$0.74$, and the
+heat-trace reductions of the selected links differ by up to $24\%$.
+On a multiscale graph where short and long horizons conflict,
+fractional selection exceeds ER greedy by up to $48\%$
+(Fig.~\ref{fig:motivation}(b)).
 
 Three obstacles arise when turning this objective into an
 efficient recommendation algorithm.
@@ -115,40 +121,42 @@ marginal itself.
 example exhibits increasing marginal returns, invalidating the
 stale upper bounds used by classical CELF evaluation~\cite{leskovec2007}.
 \emph{Third, linear algebra repeats across poles and rounds.}
-With $p$ poles, sketch dimension $q$, $N$ candidates, and
-$t$ Krylov iterations per right-hand side, recomputing two sketch
-banks for $k$ rounds uses up to $2kqt$ SpMVs and
-$O(kpqN)$ candidate-scoring work. Shift invariance shares the
+Recomputing two sketch banks of dimension $q$ in each of $k$ rounds
+costs $2kq$ multi-shift solves and $O(kpqN)$ candidate scoring with
+$p$ poles and $N$ candidates. Shift invariance shares the
 matrix products across poles~\cite{jegerlehner1996}; exploiting
 the evolving graph requires additional structure.
 
 We present \POLAR{}, \emph{Pole-shared Orthogonalized Lazy
 Algebraic Re-ranking}, with four contributions.
 \begin{enumerate}
-\item \textbf{Accurate marginal algebra.}
+\item \textbf{Accurate marginal algebra (first obstacle).}
 Positive Stieltjes quadrature converts a fractional marginal into
 a sum of rank-one inverse updates. Relative derivative accuracy,
 integrated along the update path, gives an $n$-independent
 marginal guarantee with
 $O((1+\log\kappa_*)\log(1/\epsilon))$ poles.
-\item \textbf{Optimization guarantees beyond submodularity.}
-We derive explicit submodularity-ratio and budget-restricted
-curvature bounds and an error-aware greedy factor in the
-ratio--curvature framework~\cite{bian2017}. The log-trace
-objective provides a strictly monotone, submodular reference.
-\item \textbf{Reuse across poles, rounds, and candidates.}
-A single selected-edge solve updates all poles and all endpoint
-sketches. Shared-direction norm caches reduce per-round scoring
-and maintenance to $O(pn_{\mathcal C}q+pN)$.
-Valid envelopes identify the proxy shortlist, whose algebraic
-re-ranking reuses the champion's solve.
-\item \textbf{Real-network evaluation.}
+\item \textbf{Guarantees beyond submodularity (second obstacle).}
+Explicit, $\sigma$-dependent submodularity-ratio and curvature bounds
+instantiate the ratio--curvature framework~\cite{bian2017} with
+quadrature, sketch, and solve errors, and valid upper envelopes
+restore lazy evaluation without diminishing returns. The worst-case
+factor is conservative, so we also report the measured per-round
+factor.
+\item \textbf{Reuse across poles, rounds, and candidates (third
+obstacle).} Unlike positive powers~\cite{fastfrac}, negative
+exponents require squared resolvent norms, which we sketch. One
+selected-edge solve updates all poles and endpoint sketches, norm
+caches cost $O(pn_{\mathcal C}q+pN)$ per round, and algebraic
+re-ranking reuses the champion's solve, so $k$ rounds need $2q+kB$
+instead of $2kq$ multi-shift solves.
+\item \textbf{Evaluation.}
 On eighteen networks with up to $34.7$ million edges, \POLAR{}
 matches exhaustive search on small instances, attains
-$99.2$--$100\%$ of exact fractional greedy, and is $8.9$--$17.8\times$
-faster than sketch recomputation. A heat-trace representation shows
-that the exponent orders recommendations by diffusion time scale,
-which the selected links confirm.
+$99.2$--$100\%$ of exact fractional greedy ($B=16$), and is
+$8.9$--$17.8\times$ faster than sketch recomputation with identical
+selections ($B=1$). Heat-trace curves confirm that $s$ orders the
+selected links by diffusion horizon.
 \end{enumerate}
 
 
@@ -200,7 +208,7 @@ g_s(e\mid S)&=f_s(S\cup\{e\})-f_s(S),\\
 \Delta_s(e;M_S)&=\Tr((M_S+b_eb_e^\top)^{-s})-\Tr(M_S^{-s})\notag\\
 &=-g_s(e\mid S).
 \end{align}
-Let $O$ denote an optimal budget-$k$ set, and let $S_k^{\mathrm{EG}}$ denote the output of true-marginal greedy.
+Let $O$ denote an optimal budget-$k$ set.
 
 All comparison sets used below contain at most $2k$ added edges. For such sets,
 \begin{equation}
@@ -350,22 +358,49 @@ w_s(\lambda)=s(\lambda+\sigma)^{-s-1}.
 \end{equation}
 Equation~\eqref{eq:path-marginal} remains valid at repeated eigenvalues, where a particular eigenvector derivative need not be defined.
 
-For $0\le\lambda_{\mathrm{lo}}<\lambda_{\mathrm{hi}}$,
-\begin{equation}
-\frac{w_s(\lambda_{\mathrm{lo}})}{w_s(\lambda_{\mathrm{hi}})}
-=\left(\frac{\lambda_{\mathrm{hi}}+\sigma}
-{\lambda_{\mathrm{lo}}+\sigma}\right)^{s+1}.
-\label{eq:relative-spectral-weight}
-\end{equation}
-This ratio increases with $s$. At $s=1$ the exponent is two; for $0<s<0.5$ it lies between one and $1.5$. Fractional objectives therefore attenuate the \emph{relative} emphasis on low frequencies. The constant eigenvector does not contribute, since $b_e^\top\bm 1=0$. For unit-weight additions, the path integral combines evolving eigenvalues with their candidate-specific overlaps.
+Compared with $s=1$, a smaller exponent flattens this weight and
+attenuates the relative emphasis on the lowest nonconstant modes.
 
-Figure~\ref{fig:motivation}(b) depicts the heterogeneous multiscale
-benchmark. A low-degree cycle with independent core attachments
-separates local degree from global spectral value. Exact inverse-trace
-greedy selects seven intercore links, while Degree spends five links
-inside this cycle. Fractional selection concentrates on peripheral
-repairs. Table~\ref{tab:multiscale} reports the gains and allocations
-over three graph realizations.
+\paragraph*{Diffusion time scales}
+The exponent has a direct diffusion interpretation. Let
+$\Delta H_S(t)=\Tr e^{-tL_0}-\Tr e^{-t(L_0+L_S)}\ge0$ be the
+reduction of the heat trace, i.e., of the total return probability
+of continuous-time random walks after time $t$.
+
+\begin{proposition}[Heat-trace representation]
+\label{prop:heat}
+For $0<s<1$,
+\begin{align}
+f_s(S)&=\frac1{\Gamma(s)}\int_0^\infty t^{s-1}e^{-\sigma t}
+\Delta H_S(t)\,dt,\label{eq:heat-mellin}\\
+f_{\log}(S)&=\int_0^\infty t^{-1}e^{-\sigma t}\Delta H_S(t)\,dt,
+\notag
+\end{align}
+and the same formula with $s=1$ gives the inverse-trace gain.
+As $t\to0$,
+$\Delta H_S(t)=2|S|t-\frac{t^2}{2}\Delta_S\Tr(L^2)+O(t^3)$,
+where adding $\{u,v\}$ increases $\Tr(L^2)$ by $2(d_u+d_v)+4$.
+\end{proposition}
+\begin{proof}
+Apply $\Gamma(s)x^{-s}=\int_0^\infty t^{s-1}e^{-tx}dt$ and
+$\log(y/x)=\int_0^\infty t^{-1}(e^{-tx}-e^{-ty})\,dt$ to the
+eigenvalues of $M_0$ and $M_S$, and use
+$\Tr e^{-tM}=e^{-\sigma t}\Tr e^{-tL}$. Weyl's inequality gives
+$\Delta H_S\ge0$. The expansion follows from
+$\Tr e^{-tL}=n-t\Tr L+\frac{t^2}{2}\Tr L^2+O(t^3)$,
+$\Tr L=\sum_vd_v$, and $\Tr L^2=\sum_vd_v^2+\sum_{u\ne v}w_{uv}^2$.
+\end{proof}
+
+The weight $t^{s-1}e^{-\sigma t}$ is proportional to a Gamma density
+with mean $s/\sigma$. Degree, which minimizes the current
+endpoint-degree sum, is the greedy maximizer of $\Delta H_S(t)$ as
+$t\to0$; log-determinant is the limit of $f_s/s$ as $s\to0$; and the
+inverse trace is $s=1$. The pair $(s,\sigma)$ is thus a single
+horizon parameter: decreasing $s$ or increasing $\sigma$ moves the
+emphasis to short diffusion times, and Degree, log-determinant,
+$f_s$ with increasing $s$, and the inverse trace target increasingly
+long horizons. Section~\ref{sec:exp-heat} verifies this order on
+real networks.
 
 \subsection{An Exact Obstruction to Submodularity}
 A set function is submodular if its marginal satisfies
@@ -1285,16 +1320,16 @@ Applying that lemma proves \eqref{eq:end-to-end-guarantee}.
 The event implication immediately gives the probability statement.
 \end{proof}
 
-The factor $\beta$ separates quadrature, maintained-proxy, and algebraic-score errors. Lemma~\ref{lem:residual-score} calibrates solve tolerances; the next two corollaries calibrate fixed projections. For exact true-marginal greedy, $\beta=1$ and the factor becomes $(1-e^{-\alpha_0\gamma_0})/\alpha_0$.
+The factor $\beta$ separates quadrature, maintained-proxy, and algebraic-score errors. Lemma~\ref{lem:residual-score} calibrates solve tolerances; the next corollary calibrates fixed projections. For exact true-marginal greedy, $\beta=1$ and the factor becomes $(1-e^{-\alpha_0\gamma_0})/\alpha_0$.
 
 \begin{remark}[Round-dependent recovery]
 \label{rem:average-beta}
-The factor $\beta$ is a worst case over rounds. If round $t$
-satisfies~\eqref{eq:beta-greedy-condition} with its own $\beta_t$,
+The factor $\beta$ is a worst case over rounds. If round $i$
+satisfies~\eqref{eq:beta-greedy-condition} with its own $\beta_i$,
 the standard ratio argument gives
-$f_s(O)-f_s(S_{t+1})\le(1-\gamma_k\beta_t/k)(f_s(O)-f_s(S_t))$, hence
+$f_s(O)-f_s(S_i)\le(1-\gamma_k\beta_i/k)(f_s(O)-f_s(S_{i-1}))$, hence
 $f_s(S_k)\ge\bigl(1-e^{-\gamma_k\bar\beta}\bigr)f_s(O)$ with
-$\bar\beta=k^{-1}\sum_t\beta_t$. Section~\ref{sec:exp-params} reports
+$\bar\beta=k^{-1}\sum_i\beta_i$. Section~\ref{sec:exp-params} reports
 both the minimum and the mean of the measured per-round recovery.
 \end{remark}
 
@@ -1883,7 +1918,8 @@ and every surviving contender is evaluated by a dense eigensolver.
 Proposition~\ref{prop:twins} below resolves the ties among
 structurally equivalent candidates that are frequent in 2-hop pools.
 \emph{Exact-ER} and \emph{Exact-Logdet} are exact greedy for
-$\Tr(M^{-1})$ and $\log\det M$; \emph{Sketched-ER} and
+$\Tr(M^{-1})$ and $\log\det M$; Exact-ER is the greedy augmentation
+of~\cite{predari2023} with exact marginals. \emph{Sketched-ER} and
 \emph{Sketched-Logdet} run the \POLAR{} machinery with the
 corresponding single-pole marginal.
 \emph{SLQ} greedy estimates every candidate's trace change by
@@ -1927,12 +1963,12 @@ online~\cite{polar-repo}.
 
 \begin{table*}[!t]
 \centering
-\caption{Running time (seconds) and SpMV counts on large networks:
+\caption{Running time (seconds) and SpMV counts on the eleven largest networks:
 $s=0.5$, $k=20$, $N=2000$, $q=128$, $p=72$--$152$.
 Speedups are relative to Naive. A truncated Naive run reports its
 elapsed time and the number of completed rounds; its speedup is a
-lower bound. In every run, \POLAR{} with $B=1$ selects the same
-twenty links as Naive.}
+lower bound. \POLAR{} with $B=1$ selects the same links as Naive
+in every round that Naive completed.}
 \label{tab:time}
 \footnotesize
 \setlength{\tabcolsep}{4.2pt}
@@ -2014,14 +2050,12 @@ On 2-hop pools, Exact-ER loses up to $3.3\%$, Exact-Logdet up to
 $5.1\%$, and Degree up to $17.4\%$ ($19.5\%$ on uniform pools). Their losses grow at the
 exponent farther from their own: Exact-ER is weakest at $s=0.25$,
 and Exact-Logdet at $s=0.75$. Conversely, exact ER or log-det greedy is slightly better than
-\POLAR{} on $f_s$ in 7 of the 13 uniform-pool cells, by at most
+\POLAR{} on $f_s$ in 7 of the 12 uniform-pool cells of Table~\ref{tab:exact}, by at most
 $0.8\%$ (ca-GrQc), and in 2 of the 12 2-hop cells, by at most
 $0.03\%$. In each such cell \POLAR{} is also below exact fractional
 greedy, so the gap is sketch error, not an advantage of the other
 objective; at $s=0.5$ on ca-GrQc, $B=32$ closes it
-(Table~\ref{tab:params}). With $\sigma=1$,
-the objectives thus differ less in $f_s$ than in which diffusion
-horizon their links improve (Section~\ref{sec:exp-heat}).
+(Table~\ref{tab:params}).
 
 \begin{table*}[!t]
 \centering
@@ -2063,8 +2097,9 @@ ca-HepPh & 0.25 & 0.9942 & -- & 0.9905 & 0.9973 & 0.9874 & 0.9300 & 0.441 & 1.00
 \end{table*}
 
 \paragraph{Large networks}
-Exact greedy costs hours per objective on the seven large networks of
-Table~\ref{tab:large}, so each method is normalized by the best
+Dense exact greedy is out of reach on the seven large networks of
+Table~\ref{tab:large} (it already takes $1.8$\,h per objective on
+ca-CondMat), so each method is normalized by the best
 method for each target. The exponent-matched \POLAR{} run attains
 $0.9979$--$1.0000$ in sixteen of seventeen cases, while Degree attains
 $0.7677$--$0.9911$. The exception is com-Youtube, where Sketched-ER
@@ -2072,7 +2107,7 @@ is $1.4\%$ better on $f_{0.5}$. Enlarging the shortlist to $B=64$ raises
 \POLAR{} to $1.0040$ of the Sketched-ER gain (1072\,s), and $q=256$
 raises it to $0.9948$ (753\,s). The gap is therefore a sketch
 ranking error at $q=128$: the best candidate lies outside the proxy
-top-16, not outside the objective's optimum.
+top-16, and the objective is not at fault.
 
 \begin{table}[!t]
 \centering
@@ -2081,7 +2116,7 @@ networks. ``Other $s$'' is the best \POLAR{} run for a different
 exponent, evaluated on the same target.}
 \label{tab:large}
 \footnotesize
-\setlength{\tabcolsep}{2.6pt}
+\setlength{\tabcolsep}{2.3pt}
 \renewcommand{\arraystretch}{1.04}
 \begin{tabular}{@{}lc rrrrrr@{}}
 \toprule
@@ -2171,46 +2206,11 @@ separates local degree from fractional spectral value.
 
 \subsection{Diffusion Time Scales}
 \label{sec:exp-heat}
-The exponent has a direct diffusion interpretation. Let
-$\Delta H_S(t)=\Tr e^{-tL_0}-\Tr e^{-t(L_0+L_S)}\ge0$ be the
-reduction of the heat trace, i.e., of the total return probability
-of continuous-time random walks after time $t$.
-
-\begin{proposition}[Heat-trace representation]
-\label{prop:heat}
-For $0<s<1$,
-\begin{align}
-f_s(S)&=\frac1{\Gamma(s)}\int_0^\infty t^{s-1}e^{-\sigma t}
-\Delta H_S(t)\,dt,\label{eq:heat-mellin}\\
-f_{\log}(S)&=\int_0^\infty t^{-1}e^{-\sigma t}\Delta H_S(t)\,dt,
-\notag
-\end{align}
-and the same formula with $s=1$ gives the inverse-trace gain.
-As $t\to0$,
-$\Delta H_S(t)=2|S|t-\frac{t^2}{2}\Delta_S\Tr(L^2)+O(t^3)$,
-where adding $\{u,v\}$ increases $\Tr(L^2)$ by $2(d_u+d_v)+4$.
-\end{proposition}
-\begin{proof}
-Apply $\Gamma(s)x^{-s}=\int_0^\infty t^{s-1}e^{-tx}dt$ and
-$\log(y/x)=\int_0^\infty t^{-1}(e^{-tx}-e^{-ty})\,dt$ to the
-eigenvalues of $M_0$ and $M_S$, and use
-$\Tr e^{-tM}=e^{-\sigma t}\Tr e^{-tL}$. Weyl's inequality gives
-$\Delta H_S\ge0$. The expansion follows from
-$\Tr e^{-tL}=n-t\Tr L+\frac{t^2}{2}\Tr L^2+O(t^3)$,
-$\Tr L=\sum_vd_v$, and $\Tr L^2=\sum_vd_v^2+\sum_{u\ne v}w_{uv}^2$.
-\end{proof}
-
-The weight $t^{s-1}e^{-\sigma t}$ is proportional to a Gamma density
-with mean $s/\sigma$. Decreasing $s$ moves emphasis to short diffusion times;
-Degree, which minimizes the current endpoint-degree sum, is the
-greedy maximizer of $\Delta H_S(t)$ as $t\to0$, and log-determinant
-is the limit of $f_s/s$ as $s\to0$. We thus expect the order
-Degree, Exact-Logdet, $s=0.25$, $0.5$, $0.75$, Exact-ER from short
-to long times. Since $s/\sigma\le1$ for $\sigma=1$, $f_s$ weights
-the short times at which all selections behave alike, which is why
-their values of $f_s$ are close even when their heat traces separate
-at $t\ge1$. Smaller $\sigma$ shifts every $f_s$ toward long times and
-toward Exact-ER.
+Proposition~\ref{prop:heat} predicts the order Degree, Exact-Logdet,
+$s=0.25$, $0.5$, $0.75$, Exact-ER from short to long times. Since
+$s/\sigma\le1$ for $\sigma=1$, $f_s$ weights the short times at which
+all selections behave alike, which is why their values of $f_s$ are
+close even when their heat traces separate at $t\ge1$.
 
 \begin{figure}[!t]
 \centering
@@ -2229,9 +2229,9 @@ legend style={font=\scriptsize,draw=none,fill=white,fill opacity=.85,text opacit
 \addlegendentry{Degree}
 \addplot[PolarOrange,dashed,thick] coordinates {(0.01,99.93) (0.01334,99.90) (0.01778,99.87) (0.02371,99.83) (0.03162,99.78) (0.04217,99.71) (0.05623,99.63) (0.07499,99.53) (0.1,99.42) (0.1334,99.32) (0.1778,99.27) (0.2371,99.34) (0.3162,99.70) (0.4217,100.00) (0.5623,100.00) (0.7499,100.00) (1,98.57) (1.334,93.06) (1.778,86.31) (2.371,80.40) (3.162,76.31) (4.217,74.15) (5.623,73.40) (7.499,73.56) (10,74.30) (13.34,75.41) (17.78,76.68) (23.71,77.89) (31.62,78.84)};
 \addlegendentry{Exact-Logdet}
-\addplot[PolarTeal!60,solid,thick] coordinates {(0.01,99.78) (0.01334,99.71) (0.01778,99.61) (0.02371,99.49) (0.03162,99.33) (0.04217,99.12) (0.05623,98.86) (0.07499,98.53) (0.1,98.15) (0.1334,97.72) (0.1778,97.30) (0.2371,97.00) (0.3162,97.04) (0.4217,97.24) (0.5623,97.57) (0.7499,98.60) (1,99.16) (1.334,96.43) (1.778,92.57) (2.371,88.98) (3.162,86.23) (4.217,84.44) (5.623,83.37) (7.499,82.79) (10,82.65) (13.34,82.91) (17.78,83.42) (23.71,84.01) (31.62,84.49)};
+\addplot[PolarTeal!60,densely dashdotted,thick] coordinates {(0.01,99.78) (0.01334,99.71) (0.01778,99.61) (0.02371,99.49) (0.03162,99.33) (0.04217,99.12) (0.05623,98.86) (0.07499,98.53) (0.1,98.15) (0.1334,97.72) (0.1778,97.30) (0.2371,97.00) (0.3162,97.04) (0.4217,97.24) (0.5623,97.57) (0.7499,98.60) (1,99.16) (1.334,96.43) (1.778,92.57) (2.371,88.98) (3.162,86.23) (4.217,84.44) (5.623,83.37) (7.499,82.79) (10,82.65) (13.34,82.91) (17.78,83.42) (23.71,84.01) (31.62,84.49)};
 \addlegendentry{\POLAR{}, $s=0.25$}
-\addplot[PolarTeal,solid,thick] coordinates {(0.01,99.73) (0.01334,99.64) (0.01778,99.52) (0.02371,99.37) (0.03162,99.17) (0.04217,98.92) (0.05623,98.59) (0.07499,98.19) (0.1,97.70) (0.1334,97.15) (0.1778,96.59) (0.2371,96.14) (0.3162,96.05) (0.4217,96.20) (0.5623,96.67) (0.7499,98.23) (1,99.90) (1.334,98.91) (1.778,97.19) (2.371,95.74) (3.162,94.83) (4.217,94.45) (5.623,94.34) (7.499,94.29) (10,94.30) (13.34,94.37) (17.78,94.53) (23.71,94.72) (31.62,94.87)};
+\addplot[PolarTeal,loosely dashed,thick] coordinates {(0.01,99.73) (0.01334,99.64) (0.01778,99.52) (0.02371,99.37) (0.03162,99.17) (0.04217,98.92) (0.05623,98.59) (0.07499,98.19) (0.1,97.70) (0.1334,97.15) (0.1778,96.59) (0.2371,96.14) (0.3162,96.05) (0.4217,96.20) (0.5623,96.67) (0.7499,98.23) (1,99.90) (1.334,98.91) (1.778,97.19) (2.371,95.74) (3.162,94.83) (4.217,94.45) (5.623,94.34) (7.499,94.29) (10,94.30) (13.34,94.37) (17.78,94.53) (23.71,94.72) (31.62,94.87)};
 \addlegendentry{\POLAR{}, $s=0.5$}
 \addplot[PolarBlue,solid,thick] coordinates {(0.01,99.70) (0.01334,99.61) (0.01778,99.48) (0.02371,99.31) (0.03162,99.10) (0.04217,98.82) (0.05623,98.46) (0.07499,98.01) (0.1,97.48) (0.1334,96.86) (0.1778,96.22) (0.2371,95.67) (0.3162,95.49) (0.4217,95.56) (0.5623,96.01) (0.7499,97.65) (1,99.62) (1.334,99.17) (1.778,98.13) (2.371,97.41) (3.162,97.17) (4.217,97.41) (5.623,97.88) (7.499,98.36) (10,98.79) (13.34,99.17) (17.78,99.48) (23.71,99.72) (31.62,99.87)};
 \addlegendentry{\POLAR{}, $s=0.75$}
@@ -2252,11 +2252,11 @@ $s=0.25$, $0.5$, and $0.75$ attain $38.2\%$, $76.3\%$, $86.2\%$,
 $94.8\%$, and $97.2\%$. On all five uniform pools, Degree is best at
 the shortest times, an inverse-trace selection at the longest, and
 the fractional selections lie between them in the order of $s$.
-Although their final values of $f_s$ differ by a few percent, the
-selected links change the heat trace at $t=3.2$ on ca-HepPh by $24\%$
-between the log-determinant and inverse-trace selections, and by
-$62\%$ between Degree and Exact-ER, on uniform pools. The exponent thus specifies the diffusion horizon that a
-recommendation should improve. On 2-hop pools, few added links merge
+On the ca-HepPh uniform pool, the heat-trace reductions at $t=3.2$
+differ by $24\%$ between the log-determinant and inverse-trace
+selections, although their $f_s$ values differ by at most $3\%$, and by
+$62\%$ between Degree and Exact-ER. The exponent thus orders
+recommendations by the diffusion horizon they improve. On 2-hop pools, few added links merge
 components, so $\Delta H_S(t)\to0$ and ratios at $t\ge30$ are
 dominated by rounding.
 
@@ -2308,12 +2308,15 @@ than the multiscale benchmark, whose coarse ranking is already stable
 at $q=24$.
 
 \paragraph{Per-round recovery}
-Let $r_t=g_s(e_t\mid S_{t-1})/\max_eg_s(e\mid S_{t-1})$ along the
-\POLAR{} trajectory. With the defaults, the per-trajectory mean of
-$r_t$ is $0.964$--$1.000$ and its minimum is $0.900$--$1.000$; the
-round winner is the true maximizer in $58$--$96\%$ of rounds. The
-minimum enters $\beta$ in Lemma~\ref{lem:approximate-greedy}, and the
-mean enters Remark~\ref{rem:average-beta}.
+Let $r_i$ be the ratio of the chosen edge's true marginal to the
+largest true marginal in round $i$ of the \POLAR{} trajectory. With
+the defaults, the per-trajectory mean of $r_i$ is $0.964$--$1.000$ and
+its minimum is $0.900$--$1.000$; the round winner is the true
+maximizer in $58$--$96\%$ of rounds. The minimum enters $\beta$ in
+Lemma~\ref{lem:approximate-greedy}, and the mean enters
+Remark~\ref{rem:average-beta}. The worst-case factors are
+conservative (about $0.34$ at $\sigma=1$ and $s=0.5$); the measured
+recovery shows that the practical gap is far smaller.
 
 \paragraph{Candidate pools, budget, and regularization}
 Over three independently drawn uniform pools for each of
@@ -2345,8 +2348,8 @@ positive-power trace $\Tr((I+\alpha L)^s)$, which is submodular. Its
 quadrature reduction does not extend to negative exponents, where the
 objective is not submodular (Example~\ref{ex:four-vertex}) and
 marginals require squared resolvent norms; \POLAR{} addresses this
-regime with sketched squared norms and lossless non-submodular
-shortlists.
+regime with sketched squared norms and exact
+non-submodular proxy shortlists.
 
 \paragraph{Matrix functions and shifted Krylov methods}
 Contour quadrature~\cite{hale2008} and rational Krylov methods for
@@ -2434,17 +2437,16 @@ H.~Sun, X.~Zhou, and Z.~Zhang,
 in \emph{Proc. ACM SIGKDD}, 2024, pp.~2755--2764,
 doi: 10.1145/3637528.3671822.
 
-\bibitem{lipman2010}
-Y.~Lipman, R.~M.~Rustamov, and T.~A.~Funkhouser,
-\lq\lq{}Biharmonic distance,''
-\emph{ACM Transactions on Graphics}, vol.~29, no.~3, Art.~27, 2010,
-doi: 10.1145/1805964.1805971.
-
 \bibitem{benzi2022}
 M.~Benzi and I.~Simunec,
 \lq\lq{}Rational Krylov methods for fractional diffusion problems on graphs,''
 \emph{BIT Numerical Mathematics}, vol.~62, pp.~357--385, 2022,
 doi: 10.1007/s10543-021-00881-0.
+
+\bibitem{black2023}
+M.~Black, Z.~Wan, A.~Nayyeri, and Y.~Wang,
+``Understanding oversquashing in GNNs through the lens of effective resistance,''
+in \emph{Proc. ICML}, PMLR, vol.~202, 2023, pp.~2528--2547.
 
 \bibitem{leskovec2007}
 J.~Leskovec, A.~Krause, C.~Guestrin, C.~Faloutsos,
@@ -2461,6 +2463,10 @@ arXiv:hep-lat/9612014, 1996.
 A.~A.~Bian, J.~M.~Buhmann, A.~Krause, and S.~Tschiatschek,
 \lq\lq{}Guarantees for greedy maximization of non-submodular functions with applications,''
 in \emph{Proc. ICML}, PMLR, vol.~70, pp.~498--507, 2017.
+
+\bibitem{fastfrac}
+``FastFrac: Fast edge recommendation for fractional spectral traces
+on graphs,'' companion submission to \emph{IEEE ICDE}, 2027.
 
 \bibitem{grinten2021forest}
 A.~van der Grinten, E.~Angriman, M.~Predari, and H.~Meyerhenke,
@@ -2545,10 +2551,6 @@ S.~Li, X.~Huang, and C.-H.~Lee,
 ``An efficient and scalable algorithm for estimating Kemeny's constant of a Markov chain on large graphs,''
 in \emph{Proc. ACM SIGKDD}, 2021, pp.~964--974,
 doi: 10.1145/3447548.3467431.
-
-\bibitem{fastfrac}
-``FastFrac: Fast edge recommendation for fractional spectral traces
-on graphs,'' companion submission to \emph{IEEE ICDE}, 2027.
 
 \bibitem{frommer1998}
 A.~Frommer and U.~Gl\"assner,
