@@ -1,30 +1,30 @@
 # POLAR: controlled degree-heterogeneity experiment
 
-Run `python3 polar_effectiveness_revision.py` from any directory. It writes
+Run `python 3 polar_effectiveness_revision.py` from any directory. It writes
 `results.json` and `results.csv` beside the script. Dependencies: NumPy and
 SciPy. The script uses one BLAS thread and pins to the second allowed CPU
 (or the only allowed CPU); this execution used CPU 1.
 
 ## Fixed experiment
 
-The control is exactly the previous n=800, seed711 benchmark: two390-vertex
-cores, each the union of three independent Hamilton cycles of weight10,
-a weight0.5 intercore bridge, and20 weight0.3 leaves. The revised stress
-benchmark adds five vertices forming a C5 with weight0.5 edges, each
-independently attached by a weight0.5 edge to core vertices20,...,24.
-Thus n=805 and the active candidate endpoint count is125. Graph seeds
+The control is exactly the previous n=800, seed 711 benchmark: two 390-vertex
+cores, each the union of three independent Hamilton cycles of weight 10,
+a weight 0.5 intercore bridge, and 20 weight 0.3 leaves. The revised stress
+benchmark adds five vertices forming a C5 with weight 0.5 edges, each
+independently attached by a weight 0.5 edge to core vertices 20,...,24.
+Thus n=805 and the active candidate endpoint count is 125. Graph seeds
 711,712,713 were fixed before the three-seed evaluation; all are retained.
 
-Every algorithm receives the same3000 candidates: uniformly sample2995
+Every algorithm receives the same 3000 candidates: uniformly sample 2995
 of the original eligible intercore/leaf-to-core links, add all five missing
 C5 chords, and shuffle with the graph RNG. The original control preserves
-its original3000-candidate sampling rule. Budgets k=15; sigma=.01;
-POLAR p=20,q=24,B=4; CG relative residual tolerance1e-7. Sketch RNG seed2026
+its original 3000-candidate sampling rule. Budgets k=15; sigma=.01;
+POLAR p=20,q=24,B=4; CG relative residual tolerance 1e-7. Sketch RNG seed 2026
 is shared across algorithms. Node sketches use centered global orthogonal
 columns; incidence sketches use global orthogonal columns.
 
 Degree means minimum current **weighted** endpoint-degree sum. Each
-C5 vertex begins at degree1.5. At any time an unselected chord has endpoint
+C5 vertex begins at degree 1.5. At any time an unselected chord has endpoint
 sum<=5, since each endpoint can have received at most its one other missing
 chord. Leaf-to-core candidates have sum>=60.3 and intercore candidates
 sum>=120. Therefore Degree deterministically spends its first five
@@ -36,9 +36,9 @@ is competitive, remains in the output.
 ## Exact fractional reference
 
 The reference uses the paper's positive composite Gauss-Jacobi/Legendre
-quadrature and the proved derivative relative-error bound256*4^(-r).
-It selects r=19 and304 poles on these spectra, giving a bound
-9.313225746154785e-10. The candidate screen uses an outward guard1e-9;
+quadrature and the proved derivative relative-error bound 256*4^(-r).
+It selects r=19 and 304 poles on these spectra, giving a bound
+9.313225746154785e-10. The candidate screen uses an outward guard 1e-9;
 every interval-surviving contender is evaluated by `numpy.linalg.eigvalsh`.
 Thus an exhaustive true-marginal greedy reference is obtained through
 certified analytic quadrature screening and ordinary double-precision
@@ -57,12 +57,12 @@ Percent improvements are ratios of mean gains, not maximum gains.
 |0.25|26.8124%|48.0579%|19.3078%|99.9519%|
 |0.5|36.9396%|21.7660%|5.6537%|99.9192%|
 
-The5.65% improvement over Sketched-ER at s=.5 should be reported as such;
-it is not a20--40% improvement.
+The 5.65% improvement over Sketched-ER at s=.5 should be reported as such;
+it is not a 20–40% improvement.
 
-`exploration.json` contains both pilot weight configurations at seed711
-(cycle/anchor weights0.5/0.5 and1/1). The0.5/0.5 construction was locked
-before the3-seed evaluation. Pilots are not pooled into the headline
+`exploration.json` contains both pilot weight configurations at seed 711
+(cycle/anchor weights 0.5/0.5 and 1/1). The 0.5/0.5 construction was locked
+before the 3-seed evaluation. Pilots are not pooled into the headline
 statistics. `summary.json` combines the final aggregate data, graph sizes,
 and separate pilot record. Historical elapsed times are not mixed with
 these measurements; this experiment's purpose is effectiveness, and its
