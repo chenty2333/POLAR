@@ -51,27 +51,31 @@ via Pole-Shared Krylov Sketching\\ {\large (Extended Version with Complete Proof
 \maketitle
 
 \begin{abstract}
-Budgeted link insertion must balance local repairs and connections
-across weakly coupled regions. We study fractional inverse-trace
-reduction, a tunable spectral objective whose exponent changes the
-weighting of diffusion times. Optimizing this non-submodular family
-requires accurate fractional marginals and efficient repeated selection.
-\POLAR{} combines positive Stieltjes quadrature, conditional
-greedy guarantees, and pole-shared Krylov solves with maintained
-endpoint sketches and algebraic re-ranking. As an optimizer, \POLAR{}
-closely tracks exact fractional greedy on real networks, whereas the
-tested stochastic Lanczos quadrature configuration takes
-$12$--$39\times$ as long with lower target gains. A
-four-million-vertex graph finishes in $15.1$ minutes with shortlist
-size $B=1$, or $28.7$ minutes at the default $B=16$. Whether the
-objective matters depends on the regularization $\sigma$, the shift
-added to the Laplacian. Under strong regularization ($\sigma=1$) on
-three uniform candidate pools, inverse-trace and log-determinant
-selections lie within $2.5\%$ of exact fractional greedy in target
-value, yet select different edges. Under weak regularization
-($\sigma=10^{-2}$) on a controlled graph where local and multiscale
-repairs compete, fractional target gains exceed those of inverse-trace
-selection by $22$--$48\%$.
+Budgeted link insertion must balance local repairs against connections
+across weakly coupled regions, and which should win depends on the
+diffusion horizon of interest. The standard log-determinant and
+inverse-trace criteria each fix that horizon. We study fractional
+inverse-trace reduction, which interpolates between them: for a
+Laplacian shifted by the regularization $\sigma$ and an exponent
+$0<s<1$, the gain averages heat-trace reductions over diffusion times
+with mean $s/\sigma$. The family is not submodular, so optimizing it
+requires accurate fractional marginals and selection without
+diminishing returns. \POLAR{} combines positive Stieltjes quadrature,
+conditional greedy guarantees, and pole-shared Krylov solves with
+maintained endpoint sketches and algebraic re-ranking. It closely
+tracks exact fractional greedy on real networks, whereas the tested
+stochastic Lanczos quadrature configuration takes $12$--$39\times$ as
+long with lower target gains; a four-million-vertex graph finishes in
+$15.1$ minutes with shortlist size $B=1$, or $28.7$ minutes at the
+default $B=16$. The exponent orders selections by horizon: on ca-HepPh
+at diffusion time $3.2$, log-determinant selection and \POLAR{} at
+$s=0.25,0.5,0.75$ reach $76\%$, $86\%$, $95\%$, and $97\%$ of the
+heat-trace reduction of inverse-trace selection. On a controlled graph
+where local and multiscale repairs compete ($\sigma=10^{-2}$),
+fractional target gains exceed those of inverse-trace selection by
+$22$--$48\%$. On three uniform candidate pools at $\sigma=1$,
+inverse-trace and log-determinant selections lie within $2.5\%$ of
+exact fractional greedy in target value, yet select different edges.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -85,67 +89,76 @@ functions, rational quadrature, Krylov methods, non-submodular optimization.
 An analyst adding links to a collaboration or communication graph
 may need to connect weakly coupled groups, reinforce peripheral
 vertices, or improve local connectivity. These repairs compete
-under an edge budget. Their value depends on the query of interest,
-such as current-flow group measures~\cite{li2019group,xia2025current}
-or forest-matrix proximity~\cite{sun2024forest}. The task is to
-improve an existing graph, not predict future links.
+under an edge budget, and which deserves it depends on the time scale
+of interest: a short diffusion sees local structure, a long one the
+bottlenecks between groups.
+Edge-addition criteria based on effective
+resistance~\cite{ghosh2008,predari2023,black2023} or Kemeny's
+constant~\cite{kirkland2025} each fix one such preference. The task
+is to improve an existing graph, not predict future links.
 
-Conventional criteria impose different preferences. Degree-based
-selection emphasizes local structure, whereas resistance and
-inverse-trace criteria emphasize global spectral
-responses~\cite{ghosh2008,predari2023,black2023}. A criterion suited
-to one diffusion horizon need not suit another. Fractional inverse-trace
-reduction provides a continuous preference: for an inserted edge set
-$S$ with graph Laplacian $L_S$, it reduces $\Tr((L_S+\sigma I)^{-s})$,
-where $\Tr$ is the trace and $I$ the identity. The exponent $0<s<1$
-tunes the weighting of diffusion times, and larger $s$ weights longer
-times more strongly at fixed $\sigma$. The regularization $\sigma>0$
-shifts the Laplacian, so disconnected graphs are admissible.
-Section~\ref{sec:preliminaries} defines the resulting gain $f_s$
-and its log-determinant and inverse-trace endpoints. We seek an
-efficient optimizer and a characterization of when objective choice
-matters.
+The two standard global criteria show the gap. To first order,
+log-determinant gain weights a Laplacian mode with eigenvalue
+$\lambda$ by $(\lambda+\sigma)^{-1}$ and inverse-trace gain by
+$(\lambda+\sigma)^{-2}$; the regularization $\sigma>0$ shifts the
+Laplacian, so disconnected graphs are admissible. Fractional
+inverse-trace reduction fills the interval between them: for an
+inserted edge set $S$ with graph Laplacian $L_S$, it reduces
+$\Tr((L_S+\sigma I)^{-s})$ with $0<s<1$, where $\Tr$ is the trace and
+$I$ the identity, and its mode weight is $(\lambda+\sigma)^{-(1+s)}$.
+Equivalently, the gain $f_s$ is proportional to the average heat-trace
+reduction over diffusion times with mean $s/\sigma$
+(Proposition~\ref{prop:heat}), so $s$ selects a horizon. The positive
+powers of FastFrac~\cite{fastfrac} cover the other side of the
+log-determinant, with weights $(\lambda+\sigma)^{-(1-s)}$, and remain
+submodular; the side containing the resistance criterion does not.
 
 Existing scalable optimizers exploit either the single-resolvent
 rank-one update available at $s=1$~\cite{predari2023} or
 submodularity~\cite{leskovec2007,fastfrac}; fractional negative
-powers offer neither. Three difficulties follow.
-Fractional powers lack a single-resolvent
-rank-one update, while subtracting approximate traces can lose relative
-marginal accuracy. Marginal returns can increase after an insertion,
+powers offer neither. Three difficulties follow. Subtracting
+approximate traces can lose relative marginal accuracy. Marginal
+returns can increase after an insertion,
 invalidating conventional lazy bounds (Fig.~\ref{fig:motivation}(a)).
 Finally, repeated shifted solves and sketch reconstruction are costly
 across thousands of candidates and multiple insertion rounds.
 
-\POLAR{} (Pole-shared Orthogonalized Lazy Algebraic Re-ranking)
-addresses these difficulties through Algorithm~\ref{alg:polar}:
+\POLAR{} (Pole-shared Orthogonalized Lazy Algebraic Re-ranking,
+Algorithm~\ref{alg:polar}) writes each marginal as a positive
+quadrature over shifted resolvents, solves all shifts in shared Krylov
+iterations~\cite{jegerlehner1996}, maintains endpoint sketches across
+rounds, and re-ranks a short proxy shortlist algebraically.
+We make four contributions:
 \begin{enumerate}
-\item \textbf{Fractional marginal evaluation.}
+\item \textbf{A horizon-tunable objective.}
+The heat-trace representation places log-determinant and inverse-trace
+gains at the two ends of one family (Proposition~\ref{prop:heat}); an
+exact four-vertex example shows that the family is not submodular
+(Example~\ref{ex:four-vertex}).
+\item \textbf{Marginals and guarantees without submodularity.}
 Positive Stieltjes quadrature gives dimension-free relative marginal
-accuracy.
-\item \textbf{Non-submodular selection.}
-Ratio--curvature bounds yield a conditional error-aware greedy
-guarantee~\cite{bian2017}. A lossless proxy-shortlist scheme supports
-a CPU-oriented lazy backend without diminishing returns; the
-GPU backend directly sorts scores.
+accuracy (Theorem~\ref{thm:dimension-free-marginal}). Ratio--curvature
+bounds~\cite{bian2017} yield a conditional greedy guarantee that
+includes numerical errors (Theorem~\ref{thm:end-to-end-greedy}), and a
+lossless proxy shortlist replaces lazy bounds.
 \item \textbf{Cross-round reuse.}
-Shared Krylov iterations~\cite{jegerlehner1996}, endpoint sketches,
-norm caches, and algebraic re-ranking reduce $k$ rounds to at most
-$2\dsk+kB$ multi-shift right-hand sides, versus $2k\dsk$ for rebuilding.
-Here $\dsk$ is sketch dimension and $B$ shortlist size.
-\end{enumerate}
-
+With sketch dimension $\dsk$ and shortlist size $B$, $k$ rounds need at
+most $2\dsk+kB$ multi-shift right-hand sides, versus $2k\dsk$ for
+rebuilding. Against No-Reuse, an ablation that rebuilds the sketches in
+every round, \POLAR{} at $B=1$ selects identical edges
+$8.9$--$17.8\times$ faster.
+\item \textbf{Evaluation of the optimizer and of objective choice.}
 Across eighteen real networks, \POLAR{} matches tested exhaustive
 optima and attains $99.2$--$100\%$ of exact fractional greedy on
 five medium networks; a greedy baseline based on stochastic Lanczos
 quadrature (SLQ) takes $12$--$39\times$ as long with lower gains.
-No-Reuse, an ablation that rebuilds the sketches in every round, tests
-the savings predicted by the solve count. On uniform pools at
-$\sigma=1$, exact $s=0.25$ and inverse-trace selections have Jaccard
-similarity $0.43$--$0.74$ despite target gains within $2.5\%$. When
-local and multiscale repairs compete at $\sigma=10^{-2}$, \POLAR{}
-exceeds inverse-trace selection by $21.77$--$48.06\%$ on the
-fractional targets (Fig.~\ref{fig:motivation}(b)).
+On real networks, the heat-trace responses of the fractional
+selections are ordered by $s$ (Section~\ref{sec:exp-heat}). When local
+and multiscale repairs compete at $\sigma=10^{-2}$, \POLAR{} exceeds
+inverse-trace selection by $21.77$--$48.06\%$ on the fractional targets
+(Fig.~\ref{fig:motivation}(b)); on uniform pools at $\sigma=1$, target
+gains agree within $2.5\%$ while the selected edges differ.
+\end{enumerate}
 
 \section{Preliminaries, Problem Statement, and Spectral Motivation}
 \label{sec:preliminaries}
@@ -184,12 +197,9 @@ f_{\log}(S)&=\Tr(\log \matA_S)-\Tr(\log \matA_0)\notag\\
 &=\log\det \matA_S-\log\det \matA_0.
 \label{eq:log-objective}
 \end{align}
-The shifted normalization preserves the reported gain units. In
-FastFrac's convention~\cite{fastfrac}, the normalized matrix is
-$A_S^{\rm FF}=I+\alpha_{\rm FF}L_S$ with $\alpha_{\rm FF}=\sigma^{-1}$,
-so $\matA_S=\sigma A_S^{\rm FF}$. Our gain is therefore
-$\sigma^{-s}[\Tr((A_0^{\rm FF})^{-s})-\Tr((A_S^{\rm FF})^{-s})]$,
-whereas FastFrac uses positive powers. The objectives remain distinct.
+FastFrac~\cite{fastfrac} normalizes by
+$A_S^{\rm FF}=I+\sigma^{-1}L_S$, so $\matA_S=\sigma A_S^{\rm FF}$
+and $f_s$ carries the factor $\sigma^{-s}$.
 
 The gains $f_s$ and $f_{\log}$ vanish at $S=\varnothing$. The link
 recommendation problem is to maximize the fractional gain:
@@ -1805,8 +1815,7 @@ $\kappa_*=\Lambda/\sigma$, under the stated residual criterion.
 
 We evaluate optimization accuracy, external-baseline performance,
 and reuse savings, then compare objective-dependent edge allocations
-and diffusion responses. Parameter checks separate practical choices
-from the sufficient conditions in Table~\ref{tab:guarantee-scope}.
+and diffusion responses.
 
 \subsection{Setup}
 
@@ -1843,8 +1852,7 @@ and reuses its solution for maintenance. Degree minimizes the current
 endpoint-degree sum; Random averages ten seeded draws. Final gains
 use eigenvalues for $n\le6000$ and otherwise composite quadrature
 with analytic error target $10^{-9}$ and CG relative stopping
-tolerance $10^{-10}$. These are numerical references, not verified
-bounds on total floating-point error.
+tolerance $10^{-10}$.
 
 \begin{proposition}[Twin candidates]
 \label{prop:twins}
@@ -1922,8 +1930,7 @@ No-Reuse. At $k=20$, $\dsk=128$, rebuilding requires $5120$
 multi-shift right-hand sides, versus $276$ at $B=1$ and $576$ at
 $B=16$. On the eight networks where No-Reuse completes, $B=1$
 selects identical edges, uses $18.7$--$19.2\times$ fewer SpMVs,
-and runs $8.9$--$17.8\times$ faster. These are ablation results,
-not speedups over an external optimizer. Increasing $B$ to 16 costs
+and runs $8.9$--$17.8\times$ faster. Increasing $B$ to 16 costs
 approximately $1.2$--$2.5\times$ more time for broader re-ranking.
 No-Reuse is truncated on com-Youtube, as-Skitter, and com-LiveJournal;
 inequality-marked speedups are lower bounds. Initialization remains
@@ -1942,8 +1949,6 @@ candidate sets per instance. \POLAR{} and exact fractional greedy
 attain the exhaustive optimum within $2\times10^{-11}$ relative
 difference throughout. Exact-ER reaches at least $0.9431$ of the
 optimum, Degree at least $0.8026$, and Random averages $0.44$--$0.73$.
-Thus greedy performs well on these tested cases despite the general
-non-submodularity of $f_s$.
 
 \paragraph{Comparison with exact greedy}
 Table~\ref{tab:exact} normalizes gains by exact fractional greedy for
@@ -2054,13 +2059,12 @@ com-Youtube & 0.5 & 0.9858 & -- & 1.0000 & 0.9766 & 0.8728 & 0.658\\
 \end{table}
 
 \paragraph{Structure of selected edges}
-The objectives do not choose structurally different edges on Hamster,
-email-Eu-core, and ca-GrQc: all three fractional \POLAR{} settings
-and Exact-ER have identical coarse degree summaries within each pool.
-Medians over the 40 selected endpoint occurrences
-are $1/0/1$ on uniform pools and $1/2/1$ on 2-hop pools. Fractions
+On Hamster, email-Eu-core, and ca-GrQc, all three fractional \POLAR{}
+settings and Exact-ER have identical coarse degree summaries within
+each pool. Medians over the 40 selected endpoint occurrences
+are $1/0/1$ on uniform pools and $1/2/1$ on 2-hop pools; fractions
 of the 20 selected edges touching a base-degree-1-or-2 vertex are
-$100/50/100\%$ and $100/100/100\%$, respectively.
+$100/50/100\%$ and $100/100/100\%$.
 
 \subsection{Controlled Multiscale Benchmark}
 To isolate competition between local and multiscale repairs, we use
@@ -2118,8 +2122,7 @@ options compete.
 A controlled-setting size check increased only $(\dsk,B)$ to
 $(128,16)$. All three graph seeds retained allocations $0/15/0$
 at $s=0.25$ and $1/14/0$ at $s=0.5$. Global column-orthogonal
-sketches and the fixed 20-pole rule were unchanged; this is not
-a full GPU-default configuration check.
+sketches and the fixed 20-pole rule were unchanged.
 
 \subsection{Diffusion Time Scales}
 \label{sec:exp-heat}
@@ -2271,7 +2274,7 @@ sketches at $(\dsk,B)=(24,4),(128,16)$ and Gaussian sketches at
 $(128,16)$, with five seeds and 20 rounds each: 900 decisions in total.
 The two normalized scores differ by at most $1.8\times10^{-15}$.
 Thus the observed per-round loss arises from shortlist omissions, not
-from re-ranking within the shortlist. This diagnosis is restricted to the recorded trajectories.
+from re-ranking within the shortlist.
 
 \paragraph{Candidate pools, budget, and regularization}
 These checks vary the default workload. Across three independently sampled uniform pools on each of three
@@ -2306,21 +2309,15 @@ group measures~\cite{li2019group,xia2025current}, forest-matrix
 proximity~\cite{sun2024forest,grinten2021forest}, opinion
 optimization~\cite{sun2025opinion}, and Kemeny's
 constant~\cite{li2021kemeny,kirkland2025} motivate other spectral
-quantities. These tasks differ in what an added edge should improve,
-even when they use related Laplacian representations. FastFrac~\cite{fastfrac}
-optimizes a submodular positive-power trace; \POLAR{} optimizes a
-negative-power trace reduction. Their exponent directions also differ:
-increasing $s$ flattens the relative positive-power mode weights
-$(1+\alpha_{\rm FF}\lambda)^{s-1}$ but steepens the negative-power
-weights $(\sigma+\lambda)^{-s-1}$ toward low frequencies. Neither
-their objectives nor their diminishing-returns properties are
-interchangeable.
+quantities. FastFrac~\cite{fastfrac}
+optimizes the submodular positive-power side of the log-determinant,
+where increasing $s$ flattens the mode weights; here it steepens them
+toward low frequencies.
 
-Experimental design studies related spectral criteria through
+Experimental design studies related spectral criteria for
+measurement selection through
 approximate supermodularity~\cite{chamon2017} and proportional
-volume sampling for A-optimal design~\cite{nikolov2019}.
-These address measurement selection rather than fractional graph-edge
-marginal reuse. Arrigo and Benzi~\cite{arrigo2016} instead optimize
+volume sampling~\cite{nikolov2019}. Arrigo and Benzi~\cite{arrigo2016} instead optimize
 network communicability based on adjacency-matrix exponentials.
 
 \paragraph{Marginal estimation and computational reuse}
@@ -2368,24 +2365,6 @@ for the final manuscript.
 
 \begin{thebibliography}{36}
 
-\bibitem{li2019group}
-H.~Li, R.~Peng, L.~Shan, Y.~Yi, and Z.~Zhang,
-``Current flow group closeness centrality for complex networks,''
-in \emph{Proc. The Web Conference (WWW)}, 2019,
-pp.~961--971, doi: 10.1145/3308558.3313490.
-
-\bibitem{xia2025current}
-H.~Xia and Z.~Zhang,
-``Fast maximization of current flow group closeness centrality,''
-in \emph{Proc. IEEE ICDE}, 2025,
-doi: 10.1109/ICDE65448.2025.00241.
-
-\bibitem{sun2024forest}
-H.~Sun, X.~Zhou, and Z.~Zhang,
-``Fast computation for the forest matrix of an evolving graph,''
-in \emph{Proc. ACM SIGKDD}, 2024, pp.~2755--2764,
-doi: 10.1145/3637528.3671822.
-
 \bibitem{ghosh2008}
 A.~Ghosh, S.~Boyd, and A.~Saberi,
 ``Minimizing effective resistance of a graph,''
@@ -2403,20 +2382,32 @@ M.~Black, Z.~Wan, A.~Nayyeri, and Y.~Wang,
 ``Understanding oversquashing in GNNs through the lens of effective resistance,''
 in \emph{Proc. ICML}, PMLR, vol.~202, 2023, pp.~2528--2547.
 
-\bibitem{bian2017}
-A.~A.~Bian, J.~M.~Buhmann, A.~Krause, and S.~Tschiatschek,
-\lq\lq{}Guarantees for greedy maximization of non-submodular functions with applications,''
-in \emph{Proc. ICML}, PMLR, vol.~70, pp.~498--507, 2017.
+\bibitem{kirkland2025}
+S.~Kirkland, Y.~Li, J.~S.~McAlister, and X.~Zhang,
+``Edge addition and the change in Kemeny's constant,''
+\emph{Discrete Applied Mathematics}, vol.~373,
+pp.~77--90, 2025, doi: 10.1016/j.dam.2025.04.031.
+
+\bibitem{fastfrac}
+``FastFrac: Fast edge recommendation for fractional spectral traces
+on graphs,'' companion submission to \emph{IEEE ICDE}, 2027. [Online]. Available:
+\url{https://github.com/chenty2333/POLAR/blob/main/paper/FastFrac.pdf}
+
+\bibitem{leskovec2007}
+J.~Leskovec, A.~Krause, C.~Guestrin, C.~Faloutsos,
+J.~VanBriesen, and N.~Glance,
+\lq\lq{}Cost-effective outbreak detection in networks,''
+in \emph{Proc. ACM SIGKDD}, 2007, pp.~420--429.
 
 \bibitem{jegerlehner1996}
 B.~Jegerlehner,
 \lq\lq{}Krylov space solvers for shifted linear systems,''
 arXiv:hep-lat/9612014, 1996.
 
-\bibitem{fastfrac}
-``FastFrac: Fast edge recommendation for fractional spectral traces
-on graphs,'' companion submission to \emph{IEEE ICDE}, 2027. [Online]. Available:
-\url{https://github.com/chenty2333/POLAR/blob/main/paper/FastFrac.pdf}
+\bibitem{bian2017}
+A.~A.~Bian, J.~M.~Buhmann, A.~Krause, and S.~Tschiatschek,
+\lq\lq{}Guarantees for greedy maximization of non-submodular functions with applications,''
+in \emph{Proc. ICML}, PMLR, vol.~70, pp.~498--507, 2017.
 
 \bibitem{dlmf-quadrature}
 NIST, \emph{Digital Library of Mathematical Functions},
@@ -2477,6 +2468,24 @@ R.~Kyng and S.~Sachdeva,
 in \emph{Proc. IEEE FOCS}, 2016, pp.~573--582,
 doi: 10.1109/FOCS.2016.68.
 
+\bibitem{li2019group}
+H.~Li, R.~Peng, L.~Shan, Y.~Yi, and Z.~Zhang,
+``Current flow group closeness centrality for complex networks,''
+in \emph{Proc. The Web Conference (WWW)}, 2019,
+pp.~961--971, doi: 10.1145/3308558.3313490.
+
+\bibitem{xia2025current}
+H.~Xia and Z.~Zhang,
+``Fast maximization of current flow group closeness centrality,''
+in \emph{Proc. IEEE ICDE}, 2025,
+doi: 10.1109/ICDE65448.2025.00241.
+
+\bibitem{sun2024forest}
+H.~Sun, X.~Zhou, and Z.~Zhang,
+``Fast computation for the forest matrix of an evolving graph,''
+in \emph{Proc. ACM SIGKDD}, 2024, pp.~2755--2764,
+doi: 10.1145/3637528.3671822.
+
 \bibitem{grinten2021forest}
 A.~van der Grinten, E.~Angriman, M.~Predari, and H.~Meyerhenke,
 ``New approximation algorithms for forest closeness centrality---for individual vertices and vertex groups,''
@@ -2494,12 +2503,6 @@ S.~Li, X.~Huang, and C.-H.~Lee,
 ``An efficient and scalable algorithm for estimating Kemeny's constant of a Markov chain on large graphs,''
 in \emph{Proc. ACM SIGKDD}, 2021, pp.~964--974,
 doi: 10.1145/3447548.3467431.
-
-\bibitem{kirkland2025}
-S.~Kirkland, Y.~Li, J.~S.~McAlister, and X.~Zhang,
-``Edge addition and the change in Kemeny's constant,''
-\emph{Discrete Applied Mathematics}, vol.~373,
-pp.~77--90, 2025, doi: 10.1016/j.dam.2025.04.031.
 
 \bibitem{chamon2017}
 L.~F.~O.~Chamon and A.~Ribeiro,
@@ -2566,12 +2569,6 @@ B.~Beckermann, A.~Cortinovis, D.~Kressner, and M.~Schweitzer,
 ``Low-rank updates of matrix functions II: Rational Krylov methods,''
 \emph{SIAM Journal on Numerical Analysis},
 vol.~59, no.~3, pp.~1325--1347, 2021, doi: 10.1137/20M1362553.
-
-\bibitem{leskovec2007}
-J.~Leskovec, A.~Krause, C.~Guestrin, C.~Faloutsos,
-J.~VanBriesen, and N.~Glance,
-\lq\lq{}Cost-effective outbreak detection in networks,''
-in \emph{Proc. ACM SIGKDD}, 2007, pp.~420--429.
 
 \end{thebibliography}
 \end{document}
