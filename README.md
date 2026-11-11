@@ -12,7 +12,7 @@ POLAR instead maximizes a regularized fractional inverse-trace gain whose
 exponent `s` makes this preference adjustable:
 
 ```math
-f_s(S) = \mathrm{Tr}\big((L+\sigma I)^{-s}\big) - \mathrm{Tr}\big((L+L_S+\sigma I)^{-s}\big), \qquad 0<s<1 .
+f_s(S) = \mathrm{Tr}\big((L+\sigma I)^{-s}\big) - \mathrm{Tr}\big((L+L_S+\sigma I)^{-s}\big), \qquad s \in (0,1).
 ```
 
 Up to a positive scale, `f_s` is the average heat-trace reduction over
